@@ -48,8 +48,8 @@ svg{display:block;width:20px;height:20px;fill:none;stroke:currentColor;stroke-wi
   border-radius:20px;
   background:rgba(255,255,255,.80);
   box-shadow:0 12px 34px rgba(0,0,0,.16);
-  backdrop-filter:blur(6px);
-  -webkit-backdrop-filter:blur(6px);
+  backdrop-filter:blur(22px);
+  -webkit-backdrop-filter:blur(22px);
 }
 .header-inner{height:76px;padding:10px 12px}
 .brand{
@@ -110,8 +110,8 @@ svg{display:block;width:20px;height:20px;fill:none;stroke:currentColor;stroke-wi
   border:1px solid var(--line);
   background:linear-gradient(145deg,rgba(255,255,255,.84),rgba(242,248,253,.76));
   box-shadow:0 10px 28px rgba(0,0,0,.11);
-  backdrop-filter:blur(5px);
-  -webkit-backdrop-filter:blur(5px);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
 }
 .mode-card,.choice-card,.menu-card{
   position:relative;width:100%;color:var(--text);text-align:left;
@@ -942,8 +942,8 @@ body.dark-mode .skeleton{background:linear-gradient(100deg,#19324c 25%,#294660 4
   border:0;
   box-shadow:none;
   background:rgba(255,255,255,.92);
-  backdrop-filter:blur(6px);
-  -webkit-backdrop-filter:blur(6px);
+  backdrop-filter:blur(22px);
+  -webkit-backdrop-filter:blur(22px);
 }
 body.dark-mode .app-header{
   border:0;
@@ -1015,3 +1015,264 @@ body.dark-mode .app-header{
 .back-button{display:inline-flex;line-height:1;padding:0;}
 .back-button.compact{display:inline-flex;align-items:center;justify-content:center;line-height:1;font-family:Arial,sans-serif;font-weight:500;padding:0;}
 .icon-button{display:inline-flex;align-items:center;justify-content:center;line-height:1;font-family:Arial,sans-serif;font-size:23px;padding:0;}
+
+
+/* ===== PERBAIKAN LAYOUT PENGAJUAN DI LAYAR KECIL ===== */
+.pengajuan-request-card{
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  box-sizing:border-box;
+  overflow:hidden;
+}
+.pengajuan-request-card > *,
+.pengajuan-request-card .request-main,
+.pengajuan-request-card .request-main > div:last-child,
+.pengajuan-request-reason{
+  min-width:0;
+  max-width:100%;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+.pengajuan-request-card .request-main strong,
+.pengajuan-request-card .request-main span,
+.pengajuan-request-card .request-main small{
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+.pengajuan-request-proof{
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  box-sizing:border-box;
+}
+.pengajuan-proof-preview{
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  flex-wrap:wrap;
+}
+.pengajuan-proof-thumb{
+  display:block;
+  flex:0 0 auto;
+  padding:0;
+  border:0;
+  border-radius:10px;
+  background:transparent;
+  cursor:pointer;
+  line-height:0;
+}
+.pengajuan-proof-thumb img{
+  display:block;
+  max-width:100%;
+}
+.pengajuan-proof-open{
+  min-width:0;
+  max-width:100%;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+.pengajuan-request-reason p{
+  max-width:100%;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+  white-space:pre-wrap;
+}
+.pengajuan-request-card .request-actions{
+  min-width:0;
+  max-width:100%;
+}
+.pengajuan-request-card .request-actions button{
+  min-width:0;
+  max-width:100%;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+@media(max-width:560px){
+  .pengajuan-request-card{padding:12px;gap:12px}
+  .pengajuan-proof-preview{align-items:center}
+  .pengajuan-proof-open{flex:1 1 130px;width:auto}
+  .pengajuan-request-card .request-actions{flex-direction:column}
+  .pengajuan-request-card .request-actions button{width:100%;flex:0 0 auto}
+}
+
+/* ===== PENAMPIL GAMBAR: UKURAN PAS + ZOOM MANUAL ===== */
+.proof-image-viewer-card{
+  width:min(94vw,720px);
+  max-width:94vw;
+  max-height:92vh;
+  box-sizing:border-box;
+  flex-direction:column;
+  gap:10px;
+  overflow:hidden;
+}
+.proof-image-stage{
+  width:100%;
+  min-width:0;
+  height:min(76vh,720px);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  touch-action:none;
+  border-radius:10px;
+  background:rgba(12,25,38,.04);
+}
+.proof-image-viewer-card img{
+  flex:0 0 auto;
+  width:auto;
+  height:auto;
+  max-width:100%;
+  max-height:100%;
+  object-fit:contain;
+  transform:scale(1);
+  transform-origin:center center;
+  transition:transform .08s linear;
+  user-select:none;
+  -webkit-user-drag:none;
+}
+.proof-image-controls{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  width:100%;
+}
+.proof-image-controls button{
+  min-width:42px;
+  min-height:38px;
+  padding:6px 12px;
+  border:1px solid #c8d6e2;
+  border-radius:10px;
+  background:#edf4fa;
+  color:#19364e;
+  font-weight:700;
+  font-size:16px;
+}
+.proof-image-controls button[data-proof-zoom="reset"]{
+  font-size:12px;
+  font-weight:600;
+}
+.proof-image-hint{
+  display:block;
+  color:#63788b;
+  text-align:center;
+  font-size:11px;
+  line-height:1.4;
+}
+@media(max-width:430px){
+  .proof-image-viewer{padding:8px}
+  .proof-image-viewer-card{width:96vw;max-width:96vw;max-height:94vh;padding:8px}
+  .proof-image-stage{height:76vh}
+  .proof-image-controls{gap:6px}
+  .proof-image-controls button{min-width:38px;padding:6px 9px}
+}
+
+
+/* ===== FIX DEFINITIF: KARTU PENGAJUAN RESPONSIF ===== */
+/* Paksa setiap bagian kartu berada di baris tersendiri. Jangan biarkan
+   grid membuat kolom sempit yang memecah teks menjadi satu huruf. */
+.request-list > .pengajuan-request-card,
+.pengajuan-request-card{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) !important;
+  grid-auto-flow:row !important;
+  align-items:stretch;
+  justify-items:stretch;
+  gap:14px;
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  box-sizing:border-box;
+  overflow:hidden;
+}
+.pengajuan-request-card > .request-main,
+.pengajuan-request-card > .pengajuan-request-proof,
+.pengajuan-request-card > .pengajuan-request-reason,
+.pengajuan-request-card > .request-actions{
+  grid-column:1 / -1 !important;
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  box-sizing:border-box;
+}
+.pengajuan-request-card .request-main{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.pengajuan-request-card .request-main .avatar{
+  flex:0 0 44px;
+}
+.pengajuan-request-card .request-main > div:last-child{
+  flex:1 1 0;
+  width:0;
+  min-width:0;
+}
+.pengajuan-request-card .request-main strong,
+.pengajuan-request-card .request-main span,
+.pengajuan-request-card .request-main small{
+  max-width:100%;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  word-break:normal;
+}
+.pengajuan-request-proof,
+.pengajuan-request-reason{
+  min-width:0;
+  width:100%;
+}
+.pengajuan-proof-preview{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:10px;
+  width:100%;
+  min-width:0;
+}
+.pengajuan-proof-thumb{
+  max-width:100%;
+}
+.pengajuan-proof-image{
+  width:min(100%,220px);
+  height:auto;
+  max-height:180px;
+  object-fit:contain;
+}
+.pengajuan-proof-open{
+  display:block;
+  width:100%;
+  min-height:42px;
+  white-space:normal;
+  overflow-wrap:normal;
+  word-break:normal;
+  text-align:center;
+}
+.pengajuan-request-reason p{
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  word-break:normal;
+}
+.pengajuan-request-card > .request-actions{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+.pengajuan-request-card .request-actions button{
+  width:100%;
+  min-width:0;
+  min-height:42px;
+  padding:10px 12px;
+  white-space:normal;
+  overflow-wrap:normal;
+  word-break:normal;
+  text-align:center;
+}
+@media(max-width:560px){
+  .pengajuan-request-card{padding:14px;gap:12px}
+  .pengajuan-request-card > .request-actions{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .pengajuan-proof-preview{align-items:flex-start}
+  .pengajuan-proof-open{width:100%;flex:none}
+}

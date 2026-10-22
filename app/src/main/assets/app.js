@@ -1304,7 +1304,7 @@ async function loadPengajuanRequests(){
 
     const jenisLabel=r.jenis==="sakit"?"Sakit":"Izin";
     const photoHtml=photoUrl
-      ? `<div class="pengajuan-proof-preview"><a class="pengajuan-proof-link" href="${escapeHTML(photoUrl)}" target="_blank" rel="noopener"><img class="pengajuan-proof-image" src="${escapeHTML(photoUrl)}" alt="Bukti ${escapeHTML(jenisLabel)}"></a><a class="secondary-button pengajuan-proof-open" href="${escapeHTML(photoUrl)}" target="_blank" rel="noopener">Perbesar Gambar</a></div>`
+      ? `<div class="pengajuan-proof-preview"><button class="pengajuan-proof-thumb" type="button" data-proof-image-url="${escapeHTML(photoUrl)}" aria-label="Lihat foto bukti"><img class="pengajuan-proof-image" src="${escapeHTML(photoUrl)}" alt="Bukti ${escapeHTML(jenisLabel)}"></button><button class="secondary-button pengajuan-proof-open" type="button" data-proof-image-url="${escapeHTML(photoUrl)}">Perbesar Gambar</button></div>`
       : `<div class="pengajuan-proof-empty"><strong>Foto bukti tidak dapat dimuat.</strong><small>Periksa izin Storage untuk akun Pengelola.</small></div>`;
 
     card.innerHTML=`
@@ -1869,14 +1869,59 @@ function ensureProofImageViewer(){
     <div class="proof-image-viewer-backdrop" data-proof-close="1"></div>
     <div class="proof-image-viewer-card" role="dialog" aria-modal="true" aria-label="Bukti foto">
       <button type="button" class="proof-image-viewer-close" data-proof-close="1" aria-label="Tutup">×</button>
-      <img id="proofImageViewerImg" src="" alt="Bukti foto">
+      <div class="proof-image-stage" id="proofImageStage">
+        <img id="proofImageViewerImg" src="" alt="Bukti foto">
+      </div>
+      <div class="proof-image-controls" aria-label="Kontrol pembesaran gambar">
+        <button type="button" data-proof-zoom="-1" aria-label="Perkecil gambar">−</button>
+        <button type="button" data-proof-zoom="reset">Pas ukuran layar</button>
+        <button type="button" data-proof-zoom="1" aria-label="Perbesar gambar">+</button>
+      </div>
+      <small class="proof-image-hint">Gunakan tombol +/− atau cubit gambar untuk zoom.</small>
     </div>
   `;
   document.body.appendChild(viewer);
   viewer.addEventListener("click",e=>{
     if(e.target.closest("[data-proof-close]")) closeProofImageViewer();
+    const zoomButton=e.target.closest("[data-proof-zoom]");
+    if(zoomButton){
+      const action=zoomButton.dataset.proofZoom;
+      if(action==="reset") setProofImageScale(1);
+      else setProofImageScale(proofImageScale + (Number(action)>0 ? 0.25 : -0.25));
+    }
   });
+  const stage=viewer.querySelector("#proofImageStage");
+  stage.addEventListener("wheel",e=>{
+    e.preventDefault();
+    setProofImageScale(proofImageScale + (e.deltaY<0 ? 0.15 : -0.15));
+  },{passive:false});
+  let pinchStartDistance=0, pinchStartScale=1;
+  stage.addEventListener("touchstart",e=>{
+    if(e.touches.length===2){
+      pinchStartDistance=proofTouchDistance(e.touches);
+      pinchStartScale=proofImageScale;
+    }
+  },{passive:true});
+  stage.addEventListener("touchmove",e=>{
+    if(e.touches.length===2){
+      e.preventDefault();
+      const distance=proofTouchDistance(e.touches);
+      if(pinchStartDistance>0) setProofImageScale(pinchStartScale*(distance/pinchStartDistance));
+    }
+  },{passive:false});
   return viewer;
+}
+
+let proofImageScale=1;
+function proofTouchDistance(touches){
+  const dx=touches[0].clientX-touches[1].clientX;
+  const dy=touches[0].clientY-touches[1].clientY;
+  return Math.hypot(dx,dy);
+}
+function setProofImageScale(scale){
+  proofImageScale=Math.max(0.5,Math.min(4,Number(scale)||1));
+  const img=$("proofImageViewerImg");
+  if(img) img.style.transform=`scale(${proofImageScale})`;
 }
 
 function openProofImage(url){
@@ -1884,6 +1929,8 @@ function openProofImage(url){
   const viewer=ensureProofImageViewer();
   const img=$("proofImageViewerImg");
   if(!img) return;
+  proofImageScale=1;
+  img.style.transform="scale(1)";
   img.src=url;
   viewer.classList.remove("hidden");
   document.body.classList.add("proof-viewer-open");
@@ -1895,7 +1942,7 @@ function closeProofImageViewer(){
   if(!viewer) return;
   viewer.classList.add("hidden");
   document.body.classList.remove("proof-viewer-open");
-  if(img) img.removeAttribute("src");
+  if(img){img.removeAttribute("src");img.style.transform="scale(1)";}
 }
 
 function bindRecapImageButton(container){
@@ -1904,6 +1951,13 @@ function bindRecapImageButton(container){
     if(url)openProofImage(url);
   });
 }
+
+document.addEventListener("click",e=>{
+  const trigger=e.target.closest("[data-proof-image-url]");
+  if(!trigger) return;
+  e.preventDefault();
+  openProofImage(trigger.dataset.proofImageUrl);
+});
 
 async function openRekapKeseluruhan(){const modal=$("rekapKeseluruhanModal"),el=$("rekapKeseluruhanContent");modal.classList.remove("hidden");el.textContent="Memuat rekap...";try{const [{data:ms,error:me},{data:as,error:ae},{data:ps,error:pe}]=await Promise.all([supabaseClient.from("Anggota").select("id,nama,kelas").order("nama"),supabaseClient.from("Absensi").select("anggota_id,tanggal,status"),supabaseClient.from("Pengajuan").select("anggota_id,tanggal,jenis,status")]);if(me)throw me;if(ae)throw ae;if(pe)throw pe;const map=new Map((ms||[]).map(m=>[m.id,{...m,hadir:0,izin:0,sakit:0,alpa:0}])),keys=new Set();for(const a of as||[]){const m=map.get(a.anggota_id);if(!m)continue;keys.add(a.anggota_id+"|"+a.tanggal);const st=String(a.status||"").toLowerCase();if(st==="hadir")m.hadir++;else if(st==="izin")m.izin++;else if(st==="sakit")m.sakit++;else m.alpa++}for(const r of ps||[]){const m=map.get(r.anggota_id);if(!m||keys.has(r.anggota_id+"|"+r.tanggal))continue;if(r.status==="diterima"){if(r.jenis==="izin")m.izin++;if(r.jenis==="sakit")m.sakit++}else if(r.status==="ditolak")m.alpa++}el.innerHTML=`<div class="recap-overall-table"><div class="recap-overall-head"><span>Nama</span><span>Hadir</span><span>Izin</span><span>Sakit</span><span>Alpa</span></div>${[...map.values()].map(m=>`<div class="recap-overall-row"><span><strong>${escapeHTML(m.nama||"-")}</strong><small>${escapeHTML(m.kelas||"")}</small></span><b>${m.hadir}</b><b>${m.izin}</b><b>${m.sakit}</b><b>${m.alpa}</b></div>`).join("")}</div>`}catch(e){el.textContent="Gagal memuat rekap: "+e.message}}
 $("rekapKeseluruhanButton").addEventListener("click",openRekapKeseluruhan);function closeRekapKeseluruhan(){$("rekapKeseluruhanModal").classList.add("hidden")}$("closeRekapKeseluruhan").addEventListener("click",closeRekapKeseluruhan);document.querySelectorAll("[data-close-rekap-keseluruhan]").forEach(x=>x.addEventListener("click",closeRekapKeseluruhan));
