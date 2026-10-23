@@ -20,6 +20,43 @@ let attendanceLocks = new Map();
 
 const $ = id => document.getElementById(id);
 
+// ---------- TOGGLE VISIBILITAS PASSWORD ----------
+function setupPasswordVisibility(root = document) {
+  root.querySelectorAll?.('input[type="password"]:not([data-visibility-toggle])').forEach(input => {
+    input.dataset.visibilityToggle = "true";
+    const field = input.closest(".field") || input.parentElement;
+    if (!field) return;
+    field.classList.add("password-field-toggle");
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "password-visibility-toggle";
+    button.setAttribute("aria-label", "Tampilkan password");
+    button.setAttribute("aria-pressed", "false");
+    button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+    button.addEventListener("click", () => {
+      const show = input.type === "password";
+      input.type = show ? "text" : "password";
+      button.setAttribute("aria-label", show ? "Sembunyikan password" : "Tampilkan password");
+      button.setAttribute("aria-pressed", String(show));
+      button.innerHTML = show
+        ? '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 3l18 18"></path><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"></path><path d="M9.9 5.2A10.8 10.8 0 0 1 12 5c6.4 0 10 7 10 7a16 16 0 0 1-3.1 3.9"></path><path d="M6.2 6.2C3.5 8 2 12 2 12s3.6 7 10 7a10.6 10.6 0 0 0 4-.8"></path></svg>'
+        : '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+    });
+    field.appendChild(button);
+  });
+}
+setupPasswordVisibility();
+new MutationObserver(mutations => {
+  mutations.forEach(mutation => mutation.addedNodes.forEach(node => {
+    if (node.nodeType === 1) {
+      if (node.matches?.('input[type="password"]')) setupPasswordVisibility(node.parentElement || document);
+      else setupPasswordVisibility(node);
+    }
+  }));
+}).observe(document.documentElement, { childList: true, subtree: true });
+
+
 const pages = [
   "loginPage","anggotaHomePage","dashboardPage",
   "anggotaPage","qrPage","scannerPage","manualAbsensiPage","rekapPage","pengumumanPage","pengajuanPasswordPage","pengajuanPage","memberPengajuanPage"
@@ -436,7 +473,9 @@ $("loginForm").addEventListener("submit",async e=>{
   try{
     if(loginAsManager){
       const {data,error}=await loginManager(email,password);
-      if(error) throw error;
+      if (error) {
+  throw new Error("Email atau password salah. Periksa kembali.");
+      }
 
       currentUser=data.user;
       const petugas=await getPetugas();
@@ -457,10 +496,28 @@ $("loginForm").addEventListener("submit",async e=>{
       await loginMember(nama,password);
       toast("Login berhasil.","success");
     }
-  }catch(err){
-    console.error(err);
-    message("loginMessage",err?.message || "Login gagal.","error");
-  }finally{
+  } catch(err) {
+  console.error("Login gagal:", err);
+
+  const pesan = err?.message || "";
+
+  if (
+    pesan.includes("Edge Function returned") ||
+    pesan.includes("Invalid login credentials")
+  ) {
+    message(
+      "loginMessage",
+      "Nama atau password salah. Silakan periksa kembali.",
+      "error"
+    );
+  } else {
+    message(
+      "loginMessage",
+      pesan || "Login gagal. Silakan coba lagi.",
+      "error"
+    );
+  }
+}finally{
     setLoadingButton($("loginButton"),"",false);
   }
 });

@@ -1298,3 +1298,41 @@ body.dark-mode .app-header{
   .mode-card:hover, .choice-card:hover, .menu-card:hover { transform: none !important; }
 }
 /* Keep loading animations and skeleton appearance unchanged. */
+
+
+/* Password visibility toggle */
+.field.password-field-toggle { position: relative; }
+.field.password-field-toggle input[type="password"],
+.field.password-field-toggle input[type="text"] { padding-right: 48px; }
+.password-visibility-toggle {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  color: var(--muted, #687386);
+  background: transparent;
+  cursor: pointer;
+  z-index: 2;
+  -webkit-tap-highlight-color: transparent;
+}
+.password-visibility-toggle:focus-visible {
+  outline: 2px solid var(--primary, #5276d7);
+  outline-offset: 2px;
+}
+.password-visibility-toggle svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.password-visibility-toggle:active { transform: scale(.96); }
