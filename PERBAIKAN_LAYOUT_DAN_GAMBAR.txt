@@ -1,0 +1,15 @@
+E-Absensi ITC — Catatan Perbaikan
+
+Perubahan:
+1. Kartu pengajuan izin/sakit di mode Pengelola sekarang membungkus teks panjang, mencegah konten meluber ke samping, dan menumpuk tombol aksi di layar kecil.
+2. Foto bukti di kartu pengajuan membuka penampil gambar di dalam aplikasi, bukan tab/halaman gambar mentah.
+3. Penampil gambar mulai pada ukuran pas layar (fit), punya tombol +/− dan reset ukuran, mendukung pinch zoom manual, serta roda mouse bila tersedia.
+4. Dukungan pemilih foto Android WebView (onShowFileChooser) ikut dimasukkan karena tidak ada pada MainActivity.kt di ZIP sumber yang dikirim.
+
+Pemeriksaan:
+- JavaScript: node --check lulus.
+- AndroidManifest.xml, file XML resource, dan google-services.json valid secara sintaks.
+- Build APK Android belum dijalankan di lingkungan ini. Gunakan GitHub Actions untuk memverifikasi build.
+
+Cara pakai:
+Ekstrak isi ZIP ini ke folder proyek yang berisi app/, build.gradle.kts, dan settings.gradle.kts, lalu pilih untuk menimpa file yang sama. Jangan menimpa atau menghapus folder .git milik proyek.

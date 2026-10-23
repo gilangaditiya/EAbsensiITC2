@@ -1276,3 +1276,25 @@ body.dark-mode .app-header{
   .pengajuan-proof-preview{align-items:flex-start}
   .pengajuan-proof-open{width:100%;flex:none}
 }
+
+
+/* PERFORMANCE MODE: reduce GPU/compositing work on low-end Android devices */
+@media (max-width: 900px) {
+  html, body { background-image: none !important; }
+  .app-header, .app-footer, .page-shell,
+  .mode-card, .choice-card, .menu-card, .panel, .stat-card,
+  .member-card, .compact-member, .recap-item, .login-card,
+  .announcement-item, .modal, .modal-card, .app-modal,
+  .proof-image-viewer, .dashboard-skeleton-overlay {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+  .app-header { background: var(--surface-solid, #fff) !important; }
+  .mode-card, .choice-card, .menu-card, .panel, .stat-card,
+  .member-card, .compact-member, .recap-item, .login-card,
+  .announcement-item { background: var(--surface-solid, #fff) !important; }
+  .announcement-item { animation: none !important; }
+  .mode-card:hover, .choice-card:hover, .menu-card:hover { transform: none !important; }
+}
+/* Keep loading animations and skeleton appearance unchanged. */

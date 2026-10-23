@@ -1,0 +1,8 @@
+OPTIMASI PERFORMA DASHBOARD
+- Menghapus animasi dekoratif yang berjalan terus-menerus.
+- Mempertahankan transisi halaman dan spinner loading.
+- Menghentikan shimmer skeleton agar tidak terus mengerjakan animasi.
+- Menonaktifkan backdrop-filter dan bayangan berat pada layar kecil.
+- Menyederhanakan latar belakang dashboard di layar kecil.
+
+Jika dashboard tetap berat setelah update, penyebabnya mungkin proses JavaScript atau permintaan data yang terlalu banyak, bukan animasi CSS saja.
