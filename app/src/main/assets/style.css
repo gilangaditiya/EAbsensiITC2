@@ -1336,3 +1336,10 @@ body.dark-mode .app-header{
   stroke-linejoin: round;
 }
 .password-visibility-toggle:active { transform: scale(.96); }
+
+/* Tombol download laporan Excel */
+.secondary-button.full{width:100%}
+.download-button{display:flex;align-items:center;justify-content:center;gap:8px;margin:0 0 14px}
+.download-button svg{width:18px;height:18px;flex:none}
+.download-button.hidden{display:none}
+.download-button:disabled{opacity:.6}

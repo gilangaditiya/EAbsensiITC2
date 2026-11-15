@@ -892,8 +892,6 @@ $("anggotaPengumumanButton").addEventListener("click",async()=>{
 });
 
 $("anggotaRekapButton").addEventListener("click",async()=>{
-  async function openRekapKeseluruhan(){const modal=$("rekapKeseluruhanModal"),el=$("rekapKeseluruhanContent");modal.classList.remove("hidden");el.textContent="Memuat rekap...";try{const [{data:ms,error:me},{data:as,error:ae},{data:ps,error:pe}]=await Promise.all([supabaseClient.from("Anggota").select("id,nama,kelas").order("nama"),supabaseClient.from("Absensi").select("anggota_id,tanggal,status"),supabaseClient.from("Pengajuan").select("anggota_id,tanggal,jenis,status")]);if(me)throw me;if(ae)throw ae;if(pe)throw pe;const map=new Map((ms||[]).map(m=>[m.id,{...m,hadir:0,izin:0,sakit:0,alpa:0}])),keys=new Set();for(const a of as||[]){const m=map.get(a.anggota_id);if(!m)continue;keys.add(a.anggota_id+"|"+a.tanggal);const st=String(a.status||"").toLowerCase();if(st==="hadir")m.hadir++;else if(st==="izin")m.izin++;else if(st==="sakit")m.sakit++;else m.alpa++}for(const r of ps||[]){const m=map.get(r.anggota_id);if(!m||keys.has(r.anggota_id+"|"+r.tanggal))continue;if(r.status==="diterima"){if(r.jenis==="izin")m.izin++;if(r.jenis==="sakit")m.sakit++}else if(r.status==="ditolak")m.alpa++}el.innerHTML=`<div class="recap-overall-table"><div class="recap-overall-head"><span>Nama</span><span>Hadir</span><span>Izin</span><span>Sakit</span><span>Alpa</span></div>${[...map.values()].map(m=>`<div class="recap-overall-row"><span><strong>${escapeHTML(m.nama||"-")}</strong><small>${escapeHTML(m.kelas||"")}</small></span><b>${m.hadir}</b><b>${m.izin}</b><b>${m.sakit}</b><b>${m.alpa}</b></div>`).join("")}</div>`}catch(e){el.textContent="Gagal memuat rekap: "+e.message}}
-$("rekapKeseluruhanButton").addEventListener("click",openRekapKeseluruhan);function closeRekapKeseluruhan(){$("rekapKeseluruhanModal").classList.add("hidden")}$("closeRekapKeseluruhan").addEventListener("click",closeRekapKeseluruhan);document.querySelectorAll("[data-close-rekap-keseluruhan]").forEach(x=>x.addEventListener("click",closeRekapKeseluruhan));
 $("rekapTanggal").value=getToday();
   showPage("rekapPage");
   await setupRecapDateOptions(); await loadMemberRekap();
@@ -958,7 +956,7 @@ function ensureMemberPengajuanPage(){
 
           <label class="field">
             <span>Tanggal</span>
-            <input id="memberPengajuanTanggal" type="date" required>
+            <select id="memberPengajuanTanggal" required><option value="">Memuat jadwal...</option></select>
           </label>
 
           <label class="field">
@@ -1025,7 +1023,7 @@ function openPengajuanPage(){
   }
 
   $("memberPengajuanForm").reset();
-  $("memberPengajuanTanggal").value=getToday();
+  $("memberPengajuanTanggal").innerHTML='<option value="">Memuat jadwal...</option>';
   $("memberPengajuanPreview").classList.add("hidden");
   $("memberPengajuanPreviewImg").removeAttribute("src");
   $("memberPengajuanFileInfo").textContent="";
@@ -1036,8 +1034,15 @@ function openPengajuanPage(){
     try {
       await checkMemberAlreadyAttended(getToday(),true);
       const dates=(await getMeetingDates(false)).filter(d=>d.tanggal>=getToday()), input=$("memberPengajuanTanggal");
-      if(!dates.length) setMemberPengajuanAvailability(true,"Tidak dapat melakukan pengajuan izin/sakit karena tidak ada jadwal pertemuan di hari yang akan datang.");
-      else { input.min=getToday(); input.removeAttribute("max"); input.value=dates.some(d=>d.tanggal===getToday())?getToday():dates[0].tanggal; }
+      if(!dates.length){
+        input.innerHTML='<option value="">Belum ada jadwal pertemuan</option>';
+        setMemberPengajuanAvailability(true,"Tidak dapat melakukan pengajuan izin/sakit karena tidak ada jadwal pertemuan di hari yang akan datang.");
+      }else{
+        dates.sort((a,b)=>a.tanggal.localeCompare(b.tanggal));
+        input.innerHTML=dates.map(d=>`<option value="${d.tanggal}">${escapeHTML(formatTanggal(d.tanggal))}</option>`).join("");
+        input.value=dates.some(d=>d.tanggal===getToday())?getToday():dates[0].tanggal;
+        if(input.value!==getToday()) await checkMemberAlreadyAttended(input.value,true);
+      }
     } catch(err) {
       console.error("Pengajuan availability:",err);
       setMemberPengajuanAvailability(true,"Gagal memeriksa jadwal pertemuan. Silakan coba lagi.");
@@ -2016,7 +2021,48 @@ document.addEventListener("click",e=>{
   openProofImage(trigger.dataset.proofImageUrl);
 });
 
-async function openRekapKeseluruhan(){const modal=$("rekapKeseluruhanModal"),el=$("rekapKeseluruhanContent");modal.classList.remove("hidden");el.textContent="Memuat rekap...";try{const [{data:ms,error:me},{data:as,error:ae},{data:ps,error:pe}]=await Promise.all([supabaseClient.from("Anggota").select("id,nama,kelas").order("nama"),supabaseClient.from("Absensi").select("anggota_id,tanggal,status"),supabaseClient.from("Pengajuan").select("anggota_id,tanggal,jenis,status")]);if(me)throw me;if(ae)throw ae;if(pe)throw pe;const map=new Map((ms||[]).map(m=>[m.id,{...m,hadir:0,izin:0,sakit:0,alpa:0}])),keys=new Set();for(const a of as||[]){const m=map.get(a.anggota_id);if(!m)continue;keys.add(a.anggota_id+"|"+a.tanggal);const st=String(a.status||"").toLowerCase();if(st==="hadir")m.hadir++;else if(st==="izin")m.izin++;else if(st==="sakit")m.sakit++;else m.alpa++}for(const r of ps||[]){const m=map.get(r.anggota_id);if(!m||keys.has(r.anggota_id+"|"+r.tanggal))continue;if(r.status==="diterima"){if(r.jenis==="izin")m.izin++;if(r.jenis==="sakit")m.sakit++}else if(r.status==="ditolak")m.alpa++}el.innerHTML=`<div class="recap-overall-table"><div class="recap-overall-head"><span>Nama</span><span>Hadir</span><span>Izin</span><span>Sakit</span><span>Alpa</span></div>${[...map.values()].map(m=>`<div class="recap-overall-row"><span><strong>${escapeHTML(m.nama||"-")}</strong><small>${escapeHTML(m.kelas||"")}</small></span><b>${m.hadir}</b><b>${m.izin}</b><b>${m.sakit}</b><b>${m.alpa}</b></div>`).join("")}</div>`}catch(e){el.textContent="Gagal memuat rekap: "+e.message}}
+/* ---------- REKAP KESELURUHAN + DOWNLOAD EXCEL ---------- */
+let rekapKeseluruhanData=null;
+async function ambilRekapKeseluruhan(){
+  const [{data:ms,error:me},{data:as,error:ae},{data:ps,error:pe}]=await Promise.all([
+    supabaseClient.from("Anggota").select("id,nama,kelas").order("nama"),
+    supabaseClient.from("Absensi").select("anggota_id,tanggal,status"),
+    supabaseClient.from("Pengajuan").select("anggota_id,tanggal,jenis,status")
+  ]);
+  if(me)throw me;if(ae)throw ae;if(pe)throw pe;
+  return Laporan.hitungRekap(ms,as,ps);
+}
+async function openRekapKeseluruhan(){
+  const modal=$("rekapKeseluruhanModal"),el=$("rekapKeseluruhanContent"),dl=$("downloadRekapButton");
+  modal.classList.remove("hidden");el.textContent="Memuat rekap...";rekapKeseluruhanData=null;
+  if(dl){dl.classList.toggle("hidden",currentMode!=="pengelola");dl.disabled=true}
+  try{
+    const data=await ambilRekapKeseluruhan();
+    rekapKeseluruhanData=data;
+    el.innerHTML=`<div class="recap-overall-table"><div class="recap-overall-head"><span>Nama</span><span>Hadir</span><span>Izin</span><span>Sakit</span><span>Alpa</span></div>${data.rows.map(m=>`<div class="recap-overall-row"><span><strong>${escapeHTML(m.nama||"-")}</strong><small>${escapeHTML(m.kelas||"")}</small></span><b>${m.hadir}</b><b>${m.izin}</b><b>${m.sakit}</b><b>${m.alpa}</b></div>`).join("")}</div>`;
+    if(dl)dl.disabled=false;
+  }catch(e){el.textContent="Gagal memuat rekap: "+e.message}
+}
+$("downloadRekapButton").addEventListener("click",()=>{
+  if(currentMode!=="pengelola"||!rekapKeseluruhanData)return;
+  if(!rekapKeseluruhanData.rows.length){toast("Belum ada data anggota untuk diunduh.","warning");return}
+  try{
+    const bytes=Laporan.buatRekap(rekapKeseluruhanData);
+    if(Laporan.simpan("Rekap_Absensi_"+Laporan.stamp()+".xlsx",bytes)==="browser")toast("File sedang diunduh.","success");
+  }catch(e){console.error(e);toast("Gagal membuat file: "+e.message,"error")}
+});
+$("downloadAnggotaButton").addEventListener("click",async()=>{
+  if(currentMode!=="pengelola")return;
+  const btn=$("downloadAnggotaButton");btn.disabled=true;
+  try{
+    const {data,error}=await supabaseClient.from("Anggota").select("nama,kelas,email,no_hp").order("nama",{ascending:true});
+    if(error)throw error;
+    if(!data||!data.length){toast("Belum ada data anggota untuk diunduh.","warning");return}
+    const bytes=Laporan.buatAnggota(data);
+    if(Laporan.simpan("Data_Anggota_"+Laporan.stamp()+".xlsx",bytes)==="browser")toast("File sedang diunduh.","success");
+  }catch(e){console.error(e);toast("Gagal mengunduh data: "+e.message,"error")}
+  finally{btn.disabled=false}
+});
 $("rekapKeseluruhanButton").addEventListener("click",openRekapKeseluruhan);function closeRekapKeseluruhan(){$("rekapKeseluruhanModal").classList.add("hidden")}$("closeRekapKeseluruhan").addEventListener("click",closeRekapKeseluruhan);document.querySelectorAll("[data-close-rekap-keseluruhan]").forEach(x=>x.addEventListener("click",closeRekapKeseluruhan));
 $("rekapTanggal").value=getToday();
 async function setupRecapDateOptions(){const input=$("rekapTanggal");try{const [{data:a,error:ae},{data:p,error:pe}]=await Promise.all([supabaseClient.from("Absensi").select("tanggal"),supabaseClient.from("Pengajuan").select("tanggal")]);if(ae)throw ae;if(pe)throw pe;const ds=[...new Set([...(a||[]),...(p||[])].map(x=>x.tanggal).filter(Boolean))].sort().reverse();input.innerHTML="";ds.forEach(d=>{const o=document.createElement("option");o.value=d;o.textContent=formatTanggal(d);input.appendChild(o)});input.disabled=!ds.length;if(ds.length)input.value=ds[0]}catch(e){console.error(e)}}

@@ -4,15 +4,21 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.ContentValues
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.net.Uri
+import android.provider.MediaStore
+import android.util.Base64
+import android.webkit.JavascriptInterface
 import android.webkit.PermissionRequest
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -43,6 +49,75 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.RequestPermission()
     ) { }
 
+    // Android 9 ke bawah: pengguna memilih lokasi simpan lewat dialog sistem.
+    private var pendingSaveBytes: ByteArray? = null
+
+    private val createDocumentLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument(XLSX_MIME)
+    ) { uri ->
+        val bytes = pendingSaveBytes
+        pendingSaveBytes = null
+        if (uri == null || bytes == null) {
+            showToast("Penyimpanan file dibatalkan.")
+        } else {
+            try {
+                val out = contentResolver.openOutputStream(uri)
+                    ?: throw IllegalStateException("Stream kosong")
+                out.use { it.write(bytes) }
+                showToast("File berhasil disimpan.")
+            } catch (e: Exception) {
+                showToast("Gagal menyimpan file.")
+            }
+        }
+    }
+
+    // Jembatan dari JavaScript (WebView tidak bisa mengunduh file buatan sendiri).
+    inner class AndroidBridge {
+        @JavascriptInterface
+        fun saveFile(filename: String, mime: String, base64: String) {
+            val bytes = try {
+                Base64.decode(base64, Base64.DEFAULT)
+            } catch (e: IllegalArgumentException) {
+                null
+            }
+            runOnUiThread {
+                if (bytes == null) showToast("Gagal membuat file.")
+                else saveToDownloads(filename, mime, bytes)
+            }
+        }
+    }
+
+    private fun saveToDownloads(filename: String, mime: String, bytes: ByteArray) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            try {
+                val values = ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
+                    put(MediaStore.MediaColumns.MIME_TYPE, mime)
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                    put(MediaStore.MediaColumns.IS_PENDING, 1)
+                }
+                val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                    ?: throw IllegalStateException("Uri kosong")
+                val out = contentResolver.openOutputStream(uri)
+                    ?: throw IllegalStateException("Stream kosong")
+                out.use { it.write(bytes) }
+                values.clear()
+                values.put(MediaStore.MediaColumns.IS_PENDING, 0)
+                contentResolver.update(uri, values, null, null)
+                showToast("Tersimpan di folder Download: $filename")
+            } catch (e: Exception) {
+                showToast("Gagal menyimpan file.")
+            }
+        } else {
+            pendingSaveBytes = bytes
+            createDocumentLauncher.launch(filename)
+        }
+    }
+
+    private fun showToast(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,6 +133,7 @@ class MainActivity : ComponentActivity() {
         webView.settings.allowContentAccess = true
 
         webView.webViewClient = WebViewClient()
+        webView.addJavascriptInterface(AndroidBridge(), "AndroidBridge")
 
         webView.webChromeClient = object : WebChromeClient() {
             override fun onPermissionRequest(request: PermissionRequest) {
@@ -149,6 +225,10 @@ class MainActivity : ComponentActivity() {
             getSystemService(NotificationManager::class.java)
                 .createNotificationChannel(channel)
         }
+    }
+
+    private companion object {
+        const val XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     }
 
     override fun onBackPressed() {

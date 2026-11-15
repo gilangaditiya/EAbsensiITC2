@@ -207,6 +207,7 @@
         </div>
 
         <label class="search-box"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg><input id="searchAnggota" type="search" placeholder="Cari nama atau kelas..." autocomplete="off"></label>
+        <button id="downloadAnggotaButton" class="secondary-button full download-button" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg><span>Download Data Anggota (Excel)</span></button>
 
         <div id="tambahAnggotaForm" class="panel form-panel hidden">
           <div class="panel-title"><span class="eyebrow">DATA BARU</span><h2>Tambah Anggota</h2></div>
@@ -323,7 +324,7 @@
     </section>
 
     <div id="jadwalPertemuanModal" class="modal hidden" role="dialog" aria-modal="true"><div class="modal-backdrop" data-close-jadwal></div><div class="modal-card"><div class="modal-heading"><div><h2>Jadwalkan Pertemuan</h2><p>Pilih tanggal pertemuan ITC.</p></div><button type="button" class="icon-button" id="closeJadwalPertemuan">×</button></div><form id="jadwalPertemuanForm" class="form-grid"><label class="field"><span>Tanggal Pertemuan</span><input id="jadwalPertemuanTanggal" type="date" required></label><div id="jadwalPertemuanMessage" class="message"></div><div class="form-actions"><button type="button" id="batalJadwalPertemuan" class="secondary-button">Batal</button><button type="submit" class="primary-button">Simpan Jadwal</button></div></form><div class="list-head"><strong>Jadwal Mendatang</strong></div><div id="jadwalPertemuanList" class="request-list"></div></div></div>
-    <div id="rekapKeseluruhanModal" class="modal hidden" role="dialog" aria-modal="true"><div class="modal-backdrop" data-close-rekap-keseluruhan></div><div class="modal-card"><div class="modal-heading"><div><h2>Rekap Keseluruhan</h2><p>Rekap status seluruh anggota.</p></div><button type="button" class="icon-button" id="closeRekapKeseluruhan">×</button></div><div id="rekapKeseluruhanContent" class="request-list"></div></div></div>
+    <div id="rekapKeseluruhanModal" class="modal hidden" role="dialog" aria-modal="true"><div class="modal-backdrop" data-close-rekap-keseluruhan></div><div class="modal-card"><div class="modal-heading"><div><h2>Rekap Keseluruhan</h2><p>Rekap status seluruh anggota.</p></div><button type="button" class="icon-button" id="closeRekapKeseluruhan">×</button></div><button id="downloadRekapButton" class="primary-button full download-button hidden" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg><span>Download Rekapan (Excel)</span></button><div id="rekapKeseluruhanContent" class="request-list"></div></div></div>
 
     <!-- REKAP -->
     <section id="rekapPage" class="page">
@@ -360,7 +361,7 @@
 
     <footer class="app-footer">
       <div class="footer-inner">
-        <span>© 2026 Gilang Aditiya Ramadhan · v2.5.0</span>
+        <span>© 2026 Gilang Aditiya Ramadhan · v3.0.0</span>
       </div>
     </footer>
   </main>
@@ -368,6 +369,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <script src="laporan-excel.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
