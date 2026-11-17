@@ -207,6 +207,16 @@
         </div>
 
         <label class="search-box"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg><input id="searchAnggota" type="search" placeholder="Cari nama atau kelas..." autocomplete="off"></label>
+        <div class="sort-bar">
+          <span class="sort-label" id="anggotaSortLabel">Urutkan</span>
+          <div id="anggotaSortGroup" class="segmented" role="group" aria-labelledby="anggotaSortLabel">
+            <button type="button" class="seg-btn" data-sort="az" aria-pressed="false">A-Z</button>
+            <button type="button" class="seg-btn active" data-sort="kelas" aria-pressed="true">Kelas</button>
+            <button type="button" class="seg-btn" data-sort="terbaru" aria-pressed="false">Terbaru</button>
+            <button type="button" class="seg-btn" data-sort="terlama" aria-pressed="false">Terlama</button>
+          </div>
+        </div>
+        <p id="anggotaSortHint" class="sort-hint hidden">Berdasarkan tanggal bergabung.</p>
         <button id="downloadAnggotaButton" class="secondary-button full download-button" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg><span>Download Data Anggota (Excel)</span></button>
 
         <div id="tambahAnggotaForm" class="panel form-panel hidden">
@@ -329,21 +339,31 @@
     <!-- REKAP -->
     <section id="rekapPage" class="page">
       <div class="page-shell">
-        <div class="section-heading-row"><button id="backFromRekap" class="back-button compact" type="button">←</button><div class="section-heading"><span class="eyebrow">RIWAYAT ABSENSI</span><h1>Rekap Absensi</h1><p>Lihat kehadiran berdasarkan tanggal.</p></div></div>
-        <div class="filter-panel panel">
+        <div class="section-heading-row"><button id="backFromRekap" class="back-button compact" type="button">←</button><div class="section-heading"><span class="eyebrow" id="rekapEyebrow">RIWAYAT ABSENSI</span><h1 id="rekapTitle">Rekap Absensi</h1><p id="rekapSubtitle">Lihat kehadiran berdasarkan tanggal.</p></div></div>
+        <div id="rekapFilterPanel" class="filter-panel panel">
           <label class="field"><span>Tanggal Rekap</span><select id="rekapTanggal"></select></label>
-          <button id="resetRekapFilter" class="secondary-button" type="button">Pertemuan Terakhir</button><button id="rekapKeseluruhanButton" class="secondary-button" type="button">Rekap Keseluruhan</button>
+          <div class="filter-actions">
+            <button id="resetRekapFilter" class="secondary-button" type="button">Pertemuan Terakhir</button>
+            <button id="rekapKeseluruhanButton" class="secondary-button" type="button">Rekap Keseluruhan</button>
+          </div>
         </div>
-        <div class="recap-stats">
+        <div id="memberRekapFilters" class="chip-row hidden" role="group" aria-label="Filter status kehadiran">
+          <button type="button" class="chip active" data-filter="semua" aria-pressed="true">Semua <b>0</b></button>
+          <button type="button" class="chip" data-filter="hadir" aria-pressed="false">Hadir <b>0</b></button>
+          <button type="button" class="chip" data-filter="izin" aria-pressed="false">Izin <b>0</b></button>
+          <button type="button" class="chip" data-filter="sakit" aria-pressed="false">Sakit <b>0</b></button>
+          <button type="button" class="chip" data-filter="alpa" aria-pressed="false">Alpa <b>0</b></button>
+        </div>
+        <div id="rekapStats" class="recap-stats">
           <div><small>Total</small><strong id="rekapTotal">0</strong></div>
           <div><small>Hadir</small><strong id="rekapHadir">0</strong></div>
           <div><small>Sakit</small><strong id="rekapSakit">0</strong></div>
           <div><small>Izin</small><strong id="rekapIzin">0</strong></div>
           <div><small>Alpa</small><strong id="rekapTanpaKeterangan">0</strong></div>
         </div>
-        <div class="list-head recap-list-head"><strong>Daftar Anggota</strong><span id="rekapListHint">Status absensi hari ini</span></div>
+        <div class="list-head recap-list-head"><strong id="rekapListTitle">Daftar Anggota</strong><span id="rekapListHint">Status absensi pada tanggal terpilih</span></div>
         <div id="rekapList" class="recap-list"></div>
-        <div id="rekapEmptyState" class="empty-state hidden"><span><svg viewBox="0 0 24 24"><path d="M6 3h12M6 21h12M7 3v4a5 5 0 0 0 10 0V3M7 21v-4a5 5 0 0 1 10 0v4"></path></svg></span><strong>Belum ada absensi</strong><small>Tidak ada data absensi pada tanggal ini.</small></div>
+        <div id="rekapEmptyState" class="empty-state hidden"><span><svg viewBox="0 0 24 24"><path d="M6 3h12M6 21h12M7 3v4a5 5 0 0 0 10 0V3M7 21v-4a5 5 0 0 1 10 0v4"></path></svg></span><strong id="rekapEmptyTitle">Belum ada absensi</strong><small id="rekapEmptyText">Tidak ada data absensi pada tanggal ini.</small></div>
       </div>
     </section>
 

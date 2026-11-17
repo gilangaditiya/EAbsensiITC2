@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.ContentValues
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -15,6 +16,7 @@ import android.util.Base64
 import android.webkit.JavascriptInterface
 import android.webkit.PermissionRequest
 import android.webkit.ValueCallback
+import android.webkit.WebResourceRequest
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -132,7 +134,21 @@ class MainActivity : ComponentActivity() {
         webView.settings.allowFileAccess = true
         webView.settings.allowContentAccess = true
 
-        webView.webViewClient = WebViewClient()
+        webView.webViewClient = object : WebViewClient() {
+            // Tautan http/https (misalnya dari pengumuman) dibuka di browser, bukan di dalam aplikasi.
+            override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+                val scheme = request.url.scheme ?: return false
+                if (scheme == "http" || scheme == "https") {
+                    try {
+                        startActivity(Intent(Intent.ACTION_VIEW, request.url))
+                    } catch (e: Exception) {
+                        showToast("Tidak ada aplikasi untuk membuka tautan.")
+                    }
+                    return true
+                }
+                return false
+            }
+        }
         webView.addJavascriptInterface(AndroidBridge(), "AndroidBridge")
 
         webView.webChromeClient = object : WebChromeClient() {

@@ -575,7 +575,7 @@ async function loadDashboard(){
   finally{hideDashboardSkeleton("dashboardPage")}
 }
 
-$("anggotaButton").addEventListener("click",async()=>{showPage("anggotaPage");await loadAnggota()});
+$("anggotaButton").addEventListener("click",async()=>{anggotaSort="kelas";updateAnggotaSortUI();showPage("anggotaPage");await loadAnggota()});
 $("backFromAnggota").addEventListener("click",async()=>{if(!goBack())showPage(currentMode==="anggota"?"anggotaHomePage":"dashboardPage",{pushHistory:false});if(currentMode==="pengelola"&&currentPage==="dashboardPage")await loadDashboard()});
 $("scanQRButton").addEventListener("click",async()=>{if(!await requireMeetingToday("scan"))return;showPage("scannerPage");await startScanner();await loadScannerMembers()});
 $("manualAbsensiButton").addEventListener("click",async()=>{
@@ -586,90 +586,72 @@ $("manualAbsensiButton").addEventListener("click",async()=>{
   await loadManualMembers("");
 });
 ensureManualPengajuanButton();
-async function loadMemberRekap(){
-  if(!currentAnggota?.id){
-    toast("Data anggota belum tersedia.","error");
+/* ---------- REKAP ANGGOTA: daftar riwayat + filter status ---------- */
+let memberRekapRows=[];
+let memberRekapFilter="semua";
+
+function setRekapView(mode){
+  const member=mode==="anggota";
+  $("rekapPage").classList.toggle("is-member-view",member);
+  $("rekapFilterPanel").classList.toggle("hidden",member);
+  $("rekapStats").classList.toggle("hidden",member);
+  $("memberRekapFilters").classList.toggle("hidden",!member);
+  $("rekapEyebrow").textContent=member?"RIWAYAT SAYA":"RIWAYAT ABSENSI";
+  $("rekapSubtitle").textContent=member?"Riwayat kehadiranmu, dari pertemuan terbaru.":"Lihat kehadiran berdasarkan tanggal.";
+  $("rekapListTitle").textContent=member?"Riwayat Kehadiran":"Daftar Anggota";
+  $("rekapListHint").textContent=member?"":"Status absensi pada tanggal terpilih";
+  $("rekapEmptyTitle").textContent="Belum ada absensi";
+  $("rekapEmptyText").textContent=member?"Riwayat kehadiranmu akan muncul di sini.":"Tidak ada data absensi pada tanggal ini.";
+}
+
+function memberRekapCategory(row){
+  const st=row.status;
+  if(st==="hadir"||st==="izin"||st==="sakit"||st==="menunggu")return st;
+  return "alpa";
+}
+
+function tanggalBadge(iso){
+  const p=String(iso||"").split("-");
+  const bln=["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+  if(p.length!==3)return {day:"--",month:"",year:""};
+  return {day:p[2],month:bln[+p[1]-1]||"",year:p[0]};
+}
+
+function renderMemberRekapList(){
+  const list=$("rekapList");
+  const counts={semua:memberRekapRows.length,hadir:0,izin:0,sakit:0,alpa:0};
+  memberRekapRows.forEach(r=>{const c=memberRekapCategory(r);if(counts[c]!==undefined)counts[c]++});
+  document.querySelectorAll("#memberRekapFilters .chip").forEach(chip=>{
+    const f=chip.dataset.filter,on=f===memberRekapFilter;
+    chip.classList.toggle("active",on);
+    chip.setAttribute("aria-pressed",String(on));
+    chip.querySelector("b").textContent=counts[f]||0;
+  });
+
+  const rows=memberRekapFilter==="semua"?memberRekapRows:memberRekapRows.filter(r=>memberRekapCategory(r)===memberRekapFilter);
+  $("rekapListHint").textContent=rows.length+" pertemuan";
+  list.innerHTML="";
+  const empty=$("rekapEmptyState");
+  empty.classList.toggle("hidden",rows.length>0);
+  if(!rows.length){
+    const filtered=memberRekapFilter!=="semua"&&memberRekapRows.length>0;
+    $("rekapEmptyTitle").textContent=filtered?"Tidak ada data":"Belum ada absensi";
+    $("rekapEmptyText").textContent=filtered?"Tidak ada kehadiran dengan status ini.":"Riwayat kehadiranmu akan muncul di sini.";
     return;
   }
 
-  const tanggal=$("rekapTanggal").value||getToday();
-  const list=$("rekapList");
-  list.innerHTML=recapSkeleton(4);
-
-  try{
-    const [{data:absensiRows,error:absensiError},{data:pengajuanRows,error:pengajuanError}]=await Promise.all([
-      supabaseClient.from("Absensi")
-        .select("id,anggota_id,tanggal,jam,status,metode,petugas_id")
-        .eq("anggota_id",currentAnggota.id)
-        .eq("tanggal",tanggal)
-        .order("jam",{ascending:false}),
-      supabaseClient.from("Pengajuan")
-        .select("id,anggota_id,tanggal,jenis,alasan,foto_bukti,status,alasan_penolakan,diajukan_pada,diproses_pada")
-        .eq("anggota_id",currentAnggota.id)
-        .eq("tanggal",tanggal)
-        .order("diajukan_pada",{ascending:false})
-    ]);
-
-    if(absensiError)throw absensiError;
-    if(pengajuanError)throw pengajuanError;
-
-    const attendance=(absensiRows||[])[0]||null;
-    const request=(pengajuanRows||[])[0]||null;
-
-    let row=null;
-    if(attendance){
-      const raw=String(attendance.status||"tanpa keterangan").toLowerCase();
-      row={status:raw,attendance,request,detailType:(raw==="hadir"?"hadir":raw==="izin"||raw==="sakit"?raw:"alpa")};
-    }else if(request){
-      const reqStatus=String(request.status||"").toLowerCase();
-      if(reqStatus==="diterima"){
-        row={status:request.jenis,attendance:null,request,detailType:request.jenis};
-      }else if(reqStatus==="ditolak"){
-        row={status:request.jenis+" (alpa)",attendance:null,request,detailType:"rejected"};
-      }else{
-        row={status:"menunggu",attendance:null,request,detailType:"pending"};
-      }
-    }
-
-    const total=row?1:0;
-    const hadir=row?.status==="hadir"?1:0;
-    const sakit=row?.status==="sakit"?1:0;
-    const izin=row?.status==="izin"?1:0;
-    const alpa=row&&(row.status==="tanpa keterangan"||row.status==="izin (alpa)"||row.status==="sakit (alpa)")?1:0;
-
-    $("rekapTotal").textContent=total;
-    $("rekapHadir").textContent=hadir;
-    $("rekapSakit").textContent=sakit;
-    $("rekapIzin").textContent=izin;
-    $("rekapTanpaKeterangan").textContent=alpa;
-    $("rekapEmptyState").classList.toggle("hidden",!!row);
-
-    const head=document.querySelector(".recap-list-head strong");
-    const hint=$("rekapListHint");
-    if(head)head.textContent="Status Saya";
-    if(hint)hint.textContent=formatTanggal(tanggal);
-
-    list.innerHTML="";
-    if(!row)return;
-
-    const labelMap={
-      hadir:"HADIR",
-      izin:"IZIN",
-      sakit:"SAKIT",
-      "izin (alpa)":"IZIN (ALPA)",
-      "sakit (alpa)":"SAKIT (ALPA)",
-      "tanpa keterangan":"ALPA",
-      menunggu:"MENUNGGU"
-    };
+  const labelMap={hadir:"HADIR",izin:"IZIN",sakit:"SAKIT","izin (alpa)":"IZIN (ALPA)","sakit (alpa)":"SAKIT (ALPA)","tanpa keterangan":"ALPA",menunggu:"MENUNGGU"};
+  const frag=document.createDocumentFragment();
+  rows.forEach(row=>{
     const label=labelMap[row.status]||String(row.status||"ALPA").toUpperCase();
     const statusCls=row.status.includes("izin")?"status-izin":row.status.includes("sakit")?"status-sakit":row.status==="hadir"?"status-hadir":row.status==="menunggu"?"status-izin":"status-tanpa";
     const expandable=row.detailType!=="hadir";
-
+    const d=tanggalBadge(row.tanggal);
     const item=document.createElement("article");
-    item.className=`recap-row ${expandable?"is-expandable":""}`;
+    item.className="recap-row member-recap-row"+(expandable?" is-expandable":"");
     item.innerHTML=`
       <button class="recap-row-main" type="button" ${expandable?"":"disabled"} aria-expanded="false">
-        <span class="avatar">${escapeHTML(getInitials(currentAnggota.nama||"?"))}</span>
+        <span class="recap-date" aria-label="${escapeHTML(formatTanggal(row.tanggal))}"><strong>${escapeHTML(d.day)}</strong><small>${escapeHTML(d.month)} ${escapeHTML(d.year)}</small></span>
         <span class="recap-person">
           <strong>${escapeHTML(currentAnggota.nama||"-")}</strong>
           <small>${escapeHTML(currentAnggota.kelas||"-")}</small>
@@ -677,9 +659,7 @@ async function loadMemberRekap(){
         <span class="recap-status ${statusCls}">${escapeHTML(label)}</span>
         ${expandable?`<span class="recap-chevron" aria-hidden="true">⌄</span>`:""}
       </button>
-      <div class="recap-detail" hidden></div>
-    `;
-
+      <div class="recap-detail" hidden></div>`;
     if(expandable){
       const main=item.querySelector(".recap-row-main");
       main.addEventListener("click",async()=>{
@@ -690,19 +670,75 @@ async function loadMemberRekap(){
         item.classList.toggle("open",opening);
         if(opening&&detail.dataset.loaded!=="1"){
           detail.innerHTML=detailSkeleton();
-          await renderMemberRekapDetail(detail,row,tanggal);
+          await renderMemberRekapDetail(detail,row,row.tanggal);
           detail.dataset.loaded="1";
         }
       });
     }
+    frag.appendChild(item);
+  });
+  list.appendChild(frag);
+}
 
-    list.appendChild(item);
+async function loadMemberRekap(){
+  if(!currentAnggota?.id){
+    toast("Data anggota belum tersedia.","error");
+    return;
+  }
+  const list=$("rekapList");
+  list.innerHTML=recapSkeleton(4);
+  $("rekapEmptyState").classList.add("hidden");
+
+  try{
+    const [{data:absensiRows,error:absensiError},{data:pengajuanRows,error:pengajuanError}]=await Promise.all([
+      supabaseClient.from("Absensi")
+        .select("id,anggota_id,tanggal,jam,status,metode,petugas_id")
+        .eq("anggota_id",currentAnggota.id)
+        .order("tanggal",{ascending:false})
+        .order("jam",{ascending:false}),
+      supabaseClient.from("Pengajuan")
+        .select("id,anggota_id,tanggal,jenis,alasan,foto_bukti,status,alasan_penolakan,diajukan_pada,diproses_pada")
+        .eq("anggota_id",currentAnggota.id)
+        .order("diajukan_pada",{ascending:false})
+    ]);
+    if(absensiError)throw absensiError;
+    if(pengajuanError)throw pengajuanError;
+
+    // satu baris per tanggal; absensi lebih utama daripada pengajuan
+    const attByDate=new Map(),reqByDate=new Map();
+    for(const r of absensiRows||[])if(r.tanggal&&!attByDate.has(r.tanggal))attByDate.set(r.tanggal,r);
+    for(const r of pengajuanRows||[])if(r.tanggal&&!reqByDate.has(r.tanggal))reqByDate.set(r.tanggal,r);
+
+    const rows=[];
+    for(const tanggal of new Set([...attByDate.keys(),...reqByDate.keys()])){
+      const attendance=attByDate.get(tanggal)||null;
+      const request=reqByDate.get(tanggal)||null;
+      if(attendance){
+        const raw=String(attendance.status||"tanpa keterangan").toLowerCase();
+        rows.push({tanggal,status:raw,attendance,request,detailType:(raw==="hadir"?"hadir":raw==="izin"||raw==="sakit"?raw:"alpa")});
+      }else{
+        const reqStatus=String(request.status||"").toLowerCase();
+        if(reqStatus==="diterima")rows.push({tanggal,status:request.jenis,attendance:null,request,detailType:request.jenis});
+        else if(reqStatus==="ditolak")rows.push({tanggal,status:request.jenis+" (alpa)",attendance:null,request,detailType:"rejected"});
+        else rows.push({tanggal,status:"menunggu",attendance:null,request,detailType:"pending"});
+      }
+    }
+    rows.sort((x,y)=>x.tanggal<y.tanggal?1:x.tanggal>y.tanggal?-1:0); // terbaru -> terlama
+    memberRekapRows=rows;
+    renderMemberRekapList();
   }catch(error){
     console.error("loadMemberRekap:",error);
     list.innerHTML=`<div class="recap-error">Gagal memuat rekap.<br><small>${escapeHTML(error.message||"Terjadi kesalahan.")}</small></div>`;
     toast("Gagal memuat rekap absensi kamu.","error");
   }
 }
+
+$("memberRekapFilters").addEventListener("click",e=>{
+  const chip=e.target.closest("[data-filter]");
+  if(!chip)return;
+  memberRekapFilter=chip.dataset.filter;
+  renderMemberRekapList();
+});
 
 async function renderMemberRekapDetail(container,row,tanggal){
   const request=row.request;
@@ -759,11 +795,45 @@ async function renderMemberRekapDetail(container,row,tanggal){
   bindRecapImageButton(container);
 }
 
-$("rekapButton").addEventListener("click",async()=>{showPage("rekapPage");await setupRecapDateOptions();await loadRekap()});
+$("rekapButton").addEventListener("click",async()=>{setRekapView("pengelola");showPage("rekapPage");await setupRecapDateOptions();await loadRekap()});
 
 $("pengumumanButton").addEventListener("click",async()=>{showPage("pengumumanPage");await loadPengumuman()});
 
 /* ---------- ANGGOTA ---------- */
+let anggotaSort="kelas"; // az | kelas | terbaru | terlama
+function sortAnggota(list,mode=anggotaSort){
+  const arr=list.slice();
+  const teks=(a,b)=>String(a||"").localeCompare(String(b||""),"id",{numeric:true,sensitivity:"base"});
+  const byNama=(a,b)=>teks(a.nama,b.nama);
+  const gabung=(a,b,arah)=>{ // arah: -1 = terbaru dulu, 1 = terlama dulu; yang tanpa tanggal selalu di bawah
+    const x=a.tanggal_bergabung||"",y=b.tanggal_bergabung||"";
+    if(x===y)return byNama(a,b);
+    if(!x)return 1;
+    if(!y)return -1;
+    return (x<y?-1:1)*arah;
+  };
+  if(mode==="az")arr.sort(byNama);
+  else if(mode==="terbaru")arr.sort((a,b)=>gabung(a,b,-1));
+  else if(mode==="terlama")arr.sort((a,b)=>gabung(a,b,1));
+  else arr.sort((a,b)=>teks(a.kelas,b.kelas)||byNama(a,b));
+  return arr;
+}
+function updateAnggotaSortUI(){
+  document.querySelectorAll("#anggotaSortGroup .seg-btn").forEach(btn=>{
+    const on=btn.dataset.sort===anggotaSort;
+    btn.classList.toggle("active",on);
+    btn.setAttribute("aria-pressed",String(on));
+  });
+  $("anggotaSortHint").classList.toggle("hidden",anggotaSort!=="terbaru"&&anggotaSort!=="terlama");
+}
+$("anggotaSortGroup").addEventListener("click",e=>{
+  const btn=e.target.closest("[data-sort]");
+  if(!btn)return;
+  anggotaSort=btn.dataset.sort;
+  updateAnggotaSortUI();
+  renderAnggota(sortAnggota(anggotaData));
+});
+
 async function loadAnggota(search=""){
   const list=$("anggotaList"), empty=$("anggotaEmptyState");
   listSkeleton("anggotaList");
@@ -775,7 +845,7 @@ async function loadAnggota(search=""){
     anggotaData=data||[];
     $("jumlahAnggota").textContent=anggotaData.length;
     empty.classList.toggle("hidden",anggotaData.length>0);
-    renderAnggota(anggotaData);
+    renderAnggota(sortAnggota(anggotaData));
   }catch(e){console.error(e);toast("Gagal memuat data anggota.","error")}
 }
 
@@ -892,9 +962,10 @@ $("anggotaPengumumanButton").addEventListener("click",async()=>{
 });
 
 $("anggotaRekapButton").addEventListener("click",async()=>{
-$("rekapTanggal").value=getToday();
+  memberRekapFilter="semua";
+  setRekapView("anggota");
   showPage("rekapPage");
-  await setupRecapDateOptions(); await loadMemberRekap();
+  await loadMemberRekap();
 });
 
 $("anggotaIdentitasButton").addEventListener("click",async()=>{
@@ -1580,7 +1651,27 @@ async function loadPasswordRequests(){
   const {data,error}=await supabaseClient.from("PengajuanPassword").select("id,anggota_id,alasan,status,diajukan_pada,catatan,Anggota(nama,kelas,no_hp,email)").eq("status","menunggu").order("diajukan_pada",{ascending:false});
   if(error){console.error(error);toast("Gagal memuat pengajuan password.","error");return}
   const rows=data||[];list.innerHTML="";$("jumlahPengajuanPassword").textContent=rows.length;$("pengajuanPasswordEmpty").classList.toggle("hidden",rows.length>0);
-  rows.forEach(r=>{const a=r.Anggota||{};const card=document.createElement("article");card.className="request-card";card.innerHTML=`<div class="request-main"><div class="avatar">${escapeHTML(getInitials(a.nama))}</div><div><strong>${escapeHTML(a.nama||"-")}</strong><span>${escapeHTML(a.kelas||"-")}</span><small>${escapeHTML(a.email||a.no_hp||"Kontak tidak tersedia")} · ${escapeHTML(formatTanggalWaktu(r.diajukan_pada))}</small></div></div><p>${escapeHTML(r.alasan||"-")}</p><div class="request-actions"><button class="secondary-button" data-request="reject" data-id="${escapeHTML(r.id)}">Tolak</button><button class="primary-button" data-request="approve" data-id="${escapeHTML(r.id)}">Terima & Reset</button></div>`;list.appendChild(card);});
+  rows.forEach(r=>{
+    const a=r.Anggota||{};
+    const kontak=[a.email,a.no_hp].filter(Boolean).join(" · ")||"Kontak tidak tersedia";
+    const card=document.createElement("article");
+    card.className="pw-card";
+    card.innerHTML=`
+      <div class="pw-card-top">
+        <div class="avatar">${escapeHTML(getInitials(a.nama))}</div>
+        <div class="pw-card-who"><strong>${escapeHTML(a.nama||"-")}</strong><span>${escapeHTML(a.kelas||"-")}</span></div>
+      </div>
+      <dl class="pw-card-info">
+        <div><dt>Kontak</dt><dd>${escapeHTML(kontak)}</dd></div>
+        <div><dt>Diajukan</dt><dd>${escapeHTML(formatTanggalWaktu(r.diajukan_pada))}</dd></div>
+      </dl>
+      <div class="pw-card-reason"><span>Alasan</span><p>${escapeHTML(r.alasan||"-")}</p></div>
+      <div class="pw-card-actions">
+        <button class="secondary-button" type="button" data-request="reject" data-id="${escapeHTML(r.id)}">Tolak</button>
+        <button class="primary-button" type="button" data-request="approve" data-id="${escapeHTML(r.id)}">Terima &amp; Reset</button>
+      </div>`;
+    list.appendChild(card);
+  });
 }
 $("pengajuanPasswordButton").addEventListener("click",async()=>{showPage("pengajuanPasswordPage");await loadPasswordRequests()});
 $("backFromPengajuanPassword").addEventListener("click",async()=>{if(!goBack())showPage("dashboardPage",{pushHistory:false});});
@@ -2084,9 +2175,28 @@ function formatRole(role){
   const map={ketua:"Ketua",sekretaris:"Sekretaris",bendahara:"Bendahara",pembina:"Pembina",petugas:"Petugas"};
   return map[String(role||"").toLowerCase()] || String(role||"Petugas").replace(/\b\w/g,c=>c.toUpperCase());
 }
+/* Format teks pengumuman: *tebal* dan tautan (http/https/www) yang bisa dipencet */
+function formatPengumumanText(text){
+  let t=escapeHTML(text);
+  const links=[];
+  t=t.replace(/(https?:\/\/[^\s<]+|www\.[^\s<]+)/gi,m=>{
+    let url=m,tail="";
+    const trail=url.match(/(?:[.,;:!?)\]}]|&quot;|&#039;)+$/);
+    if(trail){tail=trail[0];url=url.slice(0,url.length-tail.length)}
+    if(!url)return m;
+    const href=/^www\./i.test(url)?"https://"+url:url;
+    links.push(`<a class="announcement-link" href="${href}" target="_blank" rel="noopener noreferrer">${url}</a>`);
+    return "\u0000"+(links.length-1)+"\u0000"+tail;
+  });
+  t=t.replace(/\*([^\s*](?:[^*\n]*?[^\s*])?)\*/g,"<strong>$1</strong>");
+  return t.replace(/\u0000(\d+)\u0000/g,(_,i)=>links[+i]);
+}
 async function loadPengumuman(){
   const list=$("pengumumanList");
   if(!list) return;
+  const bolehBuat=currentMode==="pengelola";
+  $("tambahPengumumanButton").classList.toggle("hidden",!bolehBuat);
+  if(!bolehBuat)$("formPengumumanPanel").classList.add("hidden");
   listSkeleton("pengumumanList",3);
   const {data,error}=await supabaseClient.from("Pengumuman").select("id,judul,isi,petugas_id,petugas_nama,petugas_role,dibuat_pada").order("dibuat_pada",{ascending:false});
   if(error){console.error(error);toast("Gagal memuat pengumuman.","error");return}
@@ -2096,7 +2206,7 @@ async function loadPengumuman(){
   $("pengumumanEmptyState").classList.toggle("hidden",rows.length>0);
   rows.forEach(item=>{
     const article=document.createElement("article");article.className="announcement-item";
-    article.innerHTML=`<div class="announcement-top"><h2 class="announcement-title">${escapeHTML(item.judul)}</h2><time class="announcement-date">${escapeHTML(formatTanggalWaktu(item.dibuat_pada))}</time></div><p class="announcement-body">${escapeHTML(item.isi)}</p><div class="announcement-author"><span class="announcement-author-avatar">${escapeHTML(getInitials(item.petugas_nama))}</span><span class="announcement-author-text"><strong>${escapeHTML(item.petugas_nama||"Petugas")}</strong><span>${escapeHTML(formatRole(item.petugas_role))}</span></span></div>`;
+    article.innerHTML=`<div class="announcement-top"><h2 class="announcement-title">${escapeHTML(item.judul)}</h2><time class="announcement-date">${escapeHTML(formatTanggalWaktu(item.dibuat_pada))}</time></div><p class="announcement-body">${formatPengumumanText(item.isi)}</p><div class="announcement-author"><span class="announcement-author-avatar">${escapeHTML(getInitials(item.petugas_nama))}</span><span class="announcement-author-text"><strong>${escapeHTML(item.petugas_nama||"Petugas")}</strong><span>${escapeHTML(formatRole(item.petugas_role))}</span></span></div>`;
     list.appendChild(article);
   });
 }
@@ -2106,6 +2216,7 @@ function resetFormPengumuman(){
   $("formPengumumanPanel")?.classList.add("hidden");
 }
 $("tambahPengumumanButton").addEventListener("click",()=>{
+  if(currentMode!=="pengelola")return;
   $("formPengumumanPanel").classList.toggle("hidden");
   if(!$("formPengumumanPanel").classList.contains("hidden")) $("judulPengumuman").focus();
 });
@@ -2145,7 +2256,7 @@ function setupRealtime(){
       if(currentPage==="manualAbsensiPage"&&!selectedManualMember)await loadManualMembers($("manualAbsensiSearch").value);
     })
     .on("postgres_changes",{event:"*",schema:"public",table:"Absensi"},async()=>{
-      if(currentPage==="rekapPage")await loadRekap();
+      if(currentPage==="rekapPage")await(currentMode==="anggota"?loadMemberRekap():loadRekap());
       if(currentPage==="dashboardPage")await loadDashboard();
     })
     .on("postgres_changes",{event:"*",schema:"public",table:"Pengumuman"},async()=>{
