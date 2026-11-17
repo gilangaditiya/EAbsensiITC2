@@ -12,8 +12,8 @@ android {
         applicationId = "com.smkganesa.eabsensi"
         minSdk = 23
         targetSdk = 35
-        versionCode = 300
-        versionName = "3.0.0"
+        versionCode = 310
+        versionName = "3.1.0"
     }
 
     compileOptions {

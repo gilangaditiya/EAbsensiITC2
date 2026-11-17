@@ -13,3 +13,16 @@ Pemeriksaan:
 
 Cara pakai:
 Ekstrak isi ZIP ini ke folder proyek yang berisi app/, build.gradle.kts, dan settings.gradle.kts, lalu pilih untuk menimpa file yang sama. Jangan menimpa atau menghapus folder .git milik proyek.
+
+v3.2 — Catatan tambahan
+1. Upload foto pengajuan: crypto.randomUUID diganti safeUUID() (fallback getRandomValues / Math.random) agar jalan di WebView file://.
+2. Layout responsif HP/tablet/desktop/landscape, target sentuh 46px, input 16px (anti auto-zoom).
+3. Animasi (transform+opacity saja): halaman masuk/keluar, elemen muncul berurutan, modal & sheet masuk/keluar, tekan tombol, ikon tab, denyut tombol Scan QR. Perangkat lemah (<=4 core / <=2GB RAM) dan prefers-reduced-motion otomatis dikurangi.
+4. Tombol Scan QR pengelola: bulat, menonjol di tengah tab bar, gradasi oranye-merah, cincin berdenyut.
+5. Izin/sakit tetap tercatat di tanggal jadwal yang diajukan (bukan tanggal disetujui); jam persetujuan tidak lagi ditampilkan sebagai jam absen untuk metode Pengajuan.
+
+v3.3
+1. Skala tipografi seragam: judul halaman (h1) 22-26px, sub judul 17px, isi 14px, tombol 15px.
+2. Tombol/lencana/kartu diberi ruang dalam border; tinggi tombol mengikuti isi (tidak ada teks terpotong atau "..."); nama panjang turun baris.
+3. Tombol Donasi (kanan atas header) -> modal nominal -> QRIS dinamis. Payload dari QRIS statis "Gilang Stan, Komputer": tag 01=12, tag 54=nominal, CRC16 dihitung ulang (konstanta QRIS_STATIS di akhir app.js).
+4. Tombol Scan QR di tab bar pengelola kini biru.

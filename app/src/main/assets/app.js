@@ -59,18 +59,70 @@ new MutationObserver(mutations => {
 
 const pages = [
   "loginPage","anggotaHomePage","dashboardPage",
-  "anggotaPage","qrPage","scannerPage","manualAbsensiPage","rekapPage","pengumumanPage","pengajuanPasswordPage","pengajuanPage","memberPengajuanPage"
+  "anggotaPage","qrPage","scannerPage","manualAbsensiPage","rekapPage","pengumumanPage","pengajuanPasswordPage","pengajuanPage","memberPengajuanPage","identitasPage"
 ];
 
+/* ---------- TAB BAR: pemetaan halaman ---------- */
+let pendingTab=null,pendingTabTimer=null;
+const TAB_ROOT_PAGES={
+  pengelola:{home:["dashboardPage"],anggota:["anggotaPage"],scan:["scannerPage"],rekap:["rekapPage"],more:["manualAbsensiPage","pengajuanPage","pengajuanPasswordPage","pengumumanPage"]},
+  anggota:{home:["anggotaHomePage"],identitas:["identitasPage"],rekap:["rekapPage"],pengajuan:["memberPengajuanPage"],pengumuman:["pengumumanPage"]}
+};
+const TAB_EXTRA_PAGES={pengelola:{anggota:["qrPage"]},anggota:{}};
+function homePageFor(mode){return mode==="anggota"?"anggotaHomePage":"dashboardPage"}
+function tabForPage(id){
+  for(const map of [TAB_ROOT_PAGES[currentMode],TAB_EXTRA_PAGES[currentMode]]){
+    if(!map)continue;
+    for(const k in map)if(map[k].includes(id))return k;
+  }
+  return null;
+}
+function markPendingTab(key){
+  pendingTab=key;
+  clearTimeout(pendingTabTimer);
+  pendingTabTimer=setTimeout(()=>{pendingTab=null},6000);
+}
+
+/* Deteksi perangkat lemah / preferensi kurangi gerak -> animasi diperingan */
+const NO_MOTION=(()=>{try{return window.matchMedia("(prefers-reduced-motion: reduce)").matches}catch(_){return false}})();
+(function(){
+  try{
+    const n=navigator;
+    if((n.hardwareConcurrency&&n.hardwareConcurrency<=4)||(n.deviceMemory&&n.deviceMemory<=2))
+      document.documentElement.classList.add("low-end");
+  }catch(_){}
+})();
 function showPage(id,{pushHistory=true}={}){
   if(!$(id)) return;
+  const prevEl=pages.map(p=>$(p)).find(p=>p&&p.classList.contains("active"));
   pages.forEach(p => $(p)?.classList.remove("active"));
   $(id)?.classList.add("active");
-  if(pushHistory && !isPopStateNavigation && currentPage !== id){
+  if(prevEl&&prevEl!==$(id)&&!NO_MOTION){
+    prevEl.classList.add("page-out");
+    setTimeout(()=>prevEl.classList.remove("page-out"),180);
+  }
+  const home=homePageFor(currentMode);
+  const isTabRoot=!!pendingTab && !!TAB_ROOT_PAGES[currentMode]?.[pendingTab]?.includes(id);
+  if(isTabRoot && !isPopStateNavigation){
+    // Perpindahan antar tab: tidak menumpuk riwayat; tombol Kembali dari tab lain menuju Beranda.
+    const wasHome=(currentPage===home && navigationStack.length===0);
+    if(id===home){
+      navigationStack=[];
+      history.replaceState({page:id}, "", `#${id}`);
+    }else if(wasHome){
+      navigationStack=[home];
+      history.pushState({page:id}, "", `#${id}`);
+    }else{
+      navigationStack=[home];
+      history.replaceState({page:id}, "", `#${id}`);
+    }
+    pendingTab=null;
+  }else if(pushHistory && !isPopStateNavigation && currentPage !== id){
     navigationStack.push(currentPage);
     history.pushState({page:id}, "", `#${id}`);
   }
   currentPage = id;
+  updateTabBar();
   window.scrollTo({top:0,behavior:"auto"});
 }
 
@@ -96,6 +148,21 @@ function getInitials(name){
   if(!words.length) return "--";
   if(words.length === 1) return words[0].slice(0,2).toUpperCase();
   return (words[0][0] + words[words.length-1][0]).toUpperCase();
+}
+
+/* UUID aman: crypto.randomUUID tidak ada di WebView file:// / Android lama */
+function safeUUID(){
+  try{
+    const c=window.crypto||window.msCrypto;
+    if(c&&typeof c.randomUUID==="function")return c.randomUUID();
+    if(c&&typeof c.getRandomValues==="function"){
+      const b=c.getRandomValues(new Uint8Array(16));
+      b[6]=(b[6]&0x0f)|0x40;b[8]=(b[8]&0x3f)|0x80;
+      const h=Array.from(b,x=>x.toString(16).padStart(2,"0")).join("");
+      return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`;
+    }
+  }catch(_){}
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,ch=>{const r=Math.random()*16|0;return(ch==="x"?r:(r&3|8)).toString(16)})+"-"+Date.now().toString(36);
 }
 
 function getToday(){
@@ -190,6 +257,7 @@ function setLoadingButton(btn,loadingText,loading){
 function setMode(mode){
   currentMode=mode;
   document.body.dataset.mode=mode || "";
+  buildTabBar(mode);
   try{if(mode==="anggota"||mode==="pengelola")localStorage.setItem("eabsensi_last_role",mode);else localStorage.removeItem("eabsensi_last_role")}catch(_){}
 }
 
@@ -294,10 +362,11 @@ async function loginMember(nama,password){
   setMode("anggota");
   resetNavigation("anggotaHomePage");
   $("anggotaDashboardTitle").textContent=`Halo, ${currentAnggota?.nama || nama}`;
-  $("anggotaDashboardSubtitle").textContent=`${currentAnggota?.kelas || "Anggota"} · Dashboard pribadi`;
+  $("anggotaDashboardSubtitle").textContent=`${currentAnggota?.kelas || "Anggota"} · Ringkasan kehadiranmu`;
   $("loginForm").reset();
   showPage("anggotaHomePage",{pushHistory:false});
   updateFirstPasswordNotice();
+  loadBerandaAnggota();
 }
 
 function loginManager(email,password){
@@ -545,8 +614,7 @@ $("logoutAnggotaButton").addEventListener("click",async()=>{
 });
 
 $("headerHomeButton").addEventListener("click",()=>{
-  if(currentMode==="pengelola" && currentUser) showPage("dashboardPage");
-  else if(currentMode==="anggota" && currentUser) showPage("anggotaHomePage");
+  if(currentUser && (currentMode==="pengelola" || currentMode==="anggota")) navTo("home");
   else showPage("loginPage");
 });
 
@@ -554,7 +622,7 @@ $("headerHomeButton").addEventListener("click",()=>{
 async function hasMeetingOn(date){if(!date)return false;const {data,error}=await supabaseClient.from("Pertemuan").select("id").eq("tanggal",date).limit(1);if(error)throw error;return !!data?.length}
 async function getMeetingDates(futureOnly=false){let q=supabaseClient.from("Pertemuan").select("id,tanggal").order("tanggal",{ascending:false});if(futureOnly)q=q.gt("tanggal",getToday());const {data,error}=await q;if(error)throw error;return (data||[]).filter(x=>x.tanggal)}
 async function requireMeetingToday(kind){try{if(await hasMeetingOn(getToday()))return true;toast(kind==="scan"?"Tidak dapat melakukan scan QR, karena belum waktunya untuk melakukan absensi.":"Tidak dapat melakukan absensi manual, karena belum waktunya untuk melakukan absensi.","warning");return false}catch(e){toast("Gagal memeriksa jadwal pertemuan.","error");return false}}
-function closeJadwalModal(){$("jadwalPertemuanModal").classList.add("hidden")}
+function closeJadwalModal(){$("jadwalPertemuanModal").classList.add("hidden");refreshBeranda()}
 async function renderJadwalList(){const el=$("jadwalPertemuanList");try{const ds=await getMeetingDates(true);el.innerHTML=ds.length?ds.map(d=>`<article class="request-card"><div><strong>${escapeHTML(formatTanggal(d.tanggal))}</strong></div><button class="mini-button danger" type="button" data-hapus-jadwal="${escapeHTML(d.id)}">Hapus</button></article>`).join(""):'<p>Belum ada jadwal mendatang.</p>'}catch(e){el.textContent="Gagal memuat jadwal: "+e.message}}
 $("jadwalkanPertemuanButton").addEventListener("click",async()=>{if(currentMode!=="pengelola")return;$("jadwalPertemuanTanggal").min=getToday();$("jadwalPertemuanTanggal").value="";message("jadwalPertemuanMessage","");$("jadwalPertemuanModal").classList.remove("hidden");await renderJadwalList()});
 $("closeJadwalPertemuan").addEventListener("click",closeJadwalModal);$("batalJadwalPertemuan").addEventListener("click",closeJadwalModal);document.querySelectorAll("[data-close-jadwal]").forEach(x=>x.addEventListener("click",closeJadwalModal));
@@ -562,19 +630,7 @@ $("jadwalPertemuanForm").addEventListener("submit",async e=>{e.preventDefault();
 $("jadwalPertemuanList").addEventListener("click",async e=>{const btn=e.target.closest("[data-hapus-jadwal]");if(!btn||!confirm("Hapus jadwal ini?"))return;try{const {error}=await supabaseClient.from("Pertemuan").delete().eq("id",btn.dataset.hapusJadwal);if(error)throw error;await renderJadwalList();toast("Jadwal dihapus.","success")}catch(err){toast(err.message,"error")}});
 
 /* ---------- DASHBOARD ---------- */
-async function loadDashboard(){
-  showDashboardSkeleton("dashboardPage");
-  try{
-    const {count:memberCount,error:memberError}=await supabaseClient.from("Anggota").select("*",{count:"exact",head:true});
-    if(memberError) throw memberError;
-    const {count:attendanceCount,error:attendanceError}=await supabaseClient.from("Absensi").select("*",{count:"exact",head:true}).eq("tanggal",getToday());
-    if(attendanceError) throw attendanceError;
-    $("totalAnggota").textContent=memberCount ?? 0;
-    $("totalKehadiran").textContent=attendanceCount ?? 0;
-  }catch(e){console.error(e);toast("Gagal memuat statistik.","error")}
-  finally{hideDashboardSkeleton("dashboardPage")}
-}
-
+/* loadDashboard() = memuat Beranda pengelola (lihat bagian BERANDA di bawah) */
 $("anggotaButton").addEventListener("click",async()=>{anggotaSort="kelas";updateAnggotaSortUI();showPage("anggotaPage");await loadAnggota()});
 $("backFromAnggota").addEventListener("click",async()=>{if(!goBack())showPage(currentMode==="anggota"?"anggotaHomePage":"dashboardPage",{pushHistory:false});if(currentMode==="pengelola"&&currentPage==="dashboardPage")await loadDashboard()});
 $("scanQRButton").addEventListener("click",async()=>{if(!await requireMeetingToday("scan"))return;showPage("scannerPage");await startScanner();await loadScannerMembers()});
@@ -755,7 +811,7 @@ async function renderMemberRekapDetail(container,row,tanggal){
   }
 
   const jenisLabel=request?.jenis==="sakit"?"Sakit":"Izin";
-  const jam=attendance?.jam?String(attendance.jam).slice(0,5):"-";
+  const jam=(attendance?.jam&&attendance.metode!=="Pengajuan")?String(attendance.jam).slice(0,5):"-";
 
   const photoHtml=photoUrl
     ? `<div class="recap-detail-wide"><span>Bukti</span><div class="recap-proof"><img src="${escapeHTML(photoUrl)}" alt="Bukti pengajuan"><button type="button" class="secondary-button recap-image-button" data-image-url="${escapeHTML(photoUrl)}">Perbesar Gambar</button></div></div>`
@@ -970,14 +1026,16 @@ $("anggotaRekapButton").addEventListener("click",async()=>{
 
 $("anggotaIdentitasButton").addEventListener("click",async()=>{
   if(!currentAnggota?.id){toast("Data anggota belum tersedia.","error");return;}
-  $("identityName").textContent=currentAnggota.nama||"-";
-  $("identityKelas").textContent=currentAnggota.kelas||"-";
-  $("identityHp").textContent=currentAnggota.no_hp||"-";
-  $("identityEmail").textContent=currentAnggota.email||"-";
-  $("identityQr").innerHTML="";
-  if(window.QRCode)new QRCode($("identityQr"),{text:currentAnggota.qr_code||currentAnggota.id,width:180,height:180});
-  openModal("identityModal");
+  $("identitasNama").textContent=currentAnggota.nama||"-";
+  $("identitasKelas").textContent=currentAnggota.kelas||"-";
+  $("identitasHp").textContent=currentAnggota.no_hp||"-";
+  $("identitasEmail").textContent=currentAnggota.email||"-";
+  $("identitasQr").innerHTML="";
+  if(window.QRCode)new QRCode($("identitasQr"),{text:currentAnggota.qr_code||currentAnggota.id,width:200,height:200,colorDark:"#071a32",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});
+  showPage("identitasPage");
 });
+$("identitasChangePasswordButton").addEventListener("click",()=>{$("changePasswordForm").reset();message("changePasswordMessage","");openModal("changePasswordModal")});
+$("identitasForgotPasswordButton").addEventListener("click",()=>{$("forgotIdentityForm").reset();message("forgotIdentityMessage","");openModal("forgotModal")});
 
 $("anggotaPengajuanButton").addEventListener("click",()=>{
   openPengajuanPage();
@@ -1348,7 +1406,7 @@ async function submitMemberPengajuan(e){
     if(compressedFile.size>200*1024) throw new Error("Foto hasil kompres masih lebih dari 200 KB.");
 
     setLoadingButton(btn,"Mengunggah bukti...",true);
-    const filePath=`${currentAnggota.id}/${crypto.randomUUID()}.jpg`;
+    const filePath=`${currentAnggota.id}/${safeUUID()}.jpg`;
     uploadedPath=filePath;
 
     const {error:uploadError}=await supabaseClient.storage
@@ -1979,7 +2037,7 @@ async function renderRekapDetail(container,row){
     container.innerHTML=`
       <div class="recap-detail-grid">
         <div><span>Status</span><strong>${escapeHTML(row.status==="izin"?"Izin diterima":"Sakit diterima")}</strong></div>
-        <div><span>Waktu</span><strong>${escapeHTML(String(attendance?.jam||"-").slice(0,5))}</strong></div>
+        <div><span>Waktu</span><strong>${escapeHTML((attendance?.jam&&attendance.metode!=="Pengajuan")?String(attendance.jam).slice(0,5):"-")}</strong></div>
         <div class="recap-detail-wide"><span>Alasan</span><strong>${escapeHTML(request?.alasan||"Tidak ada keterangan tambahan.")}</strong></div>
         ${photoUrl?photoHtml:""}
       </div>`;
@@ -2257,21 +2315,431 @@ function setupRealtime(){
     })
     .on("postgres_changes",{event:"*",schema:"public",table:"Absensi"},async()=>{
       if(currentPage==="rekapPage")await(currentMode==="anggota"?loadMemberRekap():loadRekap());
-      if(currentPage==="dashboardPage")await loadDashboard();
+      refreshBeranda();
     })
     .on("postgres_changes",{event:"*",schema:"public",table:"Pengumuman"},async()=>{
       if(currentPage==="pengumumanPage")await loadPengumuman();
+      refreshBeranda();
     })
     .on("postgres_changes",{event:"*",schema:"public",table:"PengajuanPassword"},async()=>{
       if(currentPage==="pengajuanPasswordPage")await loadPasswordRequests();
+      refreshBeranda();
     })
     .on("postgres_changes",{event:"*",schema:"public",table:"Pengajuan"},async()=>{
       if(currentPage==="pengajuanPage")await loadPengajuanRequests();
+      refreshBeranda();
     }).subscribe();
 }
 
+/* =====================================================================
+   TAB BAR + BERANDA
+   ===================================================================== */
+const TAB_ICONS={
+  home:'<path d="M3 11.5 12 4l9 7.5"></path><path d="M5.5 10v9.5h4.5v-5.5h4v5.5h4.5V10"></path>',
+  anggota:'<circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20a6.5 6.5 0 0 1 13 0"></path><path d="M16 4.7a3.5 3.5 0 0 1 0 6.6M18.5 14.3A6.5 6.5 0 0 1 21.5 20"></path>',
+  scan:'<path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4"></path><path d="M8 8h3v3H8zM13 13h3v3h-3zM14 8h2"></path>',
+  rekap:'<path d="M4 19V5M4 19h16M7 15l3-4 3 2 5-7"></path>',
+  more:'<circle cx="5.5" cy="12" r="1.5"></circle><circle cx="12" cy="12" r="1.5"></circle><circle cx="18.5" cy="12" r="1.5"></circle>',
+  identitas:'<circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path>',
+  pengajuan:'<path d="M6 3h9l4 4v14H6z"></path><path d="M14 3v5h5M9 13h6M9 17h6"></path>',
+  pengumuman:'<path d="M4 11h4l8-5v12l-8-5H4z"></path><path d="M8 16v3M19 9.5a4 4 0 0 1 0 5"></path>'
+};
+const TAB_DEFS={
+  pengelola:[
+    {key:"home",label:"Beranda"},{key:"anggota",label:"Anggota"},{key:"scan",label:"Scan QR"},
+    {key:"rekap",label:"Rekap"},{key:"more",label:"Lainnya"}
+  ],
+  anggota:[
+    {key:"home",label:"Beranda"},{key:"identitas",label:"Identitas"},{key:"rekap",label:"Rekap"},
+    {key:"pengajuan",label:"Izin/Sakit"},{key:"pengumuman",label:"Pengumuman"}
+  ]
+};
+let tabBarMode=null;
+
+function buildTabBar(mode){
+  const inner=$("tabBarInner");
+  if(!inner)return;
+  const defs=TAB_DEFS[mode];
+  if(!defs){tabBarMode=null;inner.innerHTML="";updateTabBar();return}
+  if(tabBarMode===mode&&inner.children.length)return;
+  tabBarMode=mode;
+  inner.innerHTML=defs.map(t=>`<button type="button" class="tab-item" data-tab="${t.key}"><span class="tab-ico"><svg viewBox="0 0 24 24" aria-hidden="true">${TAB_ICONS[t.key]}</svg></span><span class="tab-label">${t.label}</span></button>`).join("");
+}
+function updateTabBar(){
+  const bar=$("tabBar");
+  if(!bar)return;
+  const show=!!currentMode&&!!TAB_DEFS[currentMode]&&currentPage!=="loginPage";
+  bar.classList.toggle("hidden",!show);
+  document.body.classList.toggle("has-tabbar",show);
+  const active=show?tabForPage(currentPage):null;
+  bar.querySelectorAll(".tab-item").forEach(b=>{
+    const on=b.dataset.tab===active;
+    b.classList.toggle("active",on);
+    if(on)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current");
+  });
+}
+function setTabBadge(key,show){
+  const b=document.querySelector(`#tabBarInner .tab-item[data-tab="${key}"]`);
+  if(!b)return;
+  let dot=b.querySelector(".tab-badge");
+  if(show&&!dot){dot=document.createElement("i");dot.className="tab-badge";b.appendChild(dot)}
+  else if(!show&&dot)dot.remove();
+}
+
+function openMoreSheet(){$("moreSheet")?.classList.remove("hidden")}
+function closeMoreSheet(){$("moreSheet")?.classList.add("hidden")}
+$("moreSheet").addEventListener("click",e=>{
+  if(e.target.closest("[data-close-sheet]")){closeMoreSheet();return}
+  if(e.target.closest(".menu-card")){markPendingTab("more");closeMoreSheet()}
+},true);
+$("sheetPengajuanButton").addEventListener("click",async()=>{
+  showPage("pengajuanPage");
+  await loadPengajuanRequests();
+});
+
+const TAB_NO_RELOAD=new Set(["scan","pengajuan","identitas"]);
+async function navTo(key){
+  closeMoreSheet();
+  const mode=currentMode;
+  if(!mode||!currentUser)return;
+  if(key==="more"){openMoreSheet();return}
+  const onThisTab=tabForPage(currentPage)===key&&TAB_ROOT_PAGES[mode]?.[key]?.includes(currentPage);
+  if(onThisTab&&TAB_NO_RELOAD.has(key))return;
+  if(currentPage==="scannerPage"&&key!=="scan")stopScanner();
+  markPendingTab(key);
+  if(key==="home"){
+    showPage(homePageFor(mode));
+    if(mode==="pengelola")await loadDashboard();else await loadBerandaAnggota();
+    return;
+  }
+  const proxy={
+    pengelola:{anggota:"anggotaButton",scan:"scanQRButton",rekap:"rekapButton"},
+    anggota:{identitas:"anggotaIdentitasButton",rekap:"anggotaRekapButton",pengajuan:"anggotaPengajuanButton",pengumuman:"anggotaPengumumanButton"}
+  }[mode]?.[key];
+  if(proxy)$(proxy)?.click();
+}
+$("tabBar").addEventListener("click",e=>{
+  const b=e.target.closest(".tab-item");
+  if(b)navTo(b.dataset.tab);
+});
+
+// Sembunyikan tab bar saat keyboard muncul agar ruang ketik tidak terpotong.
+(function(){
+  const typing=el=>el&&el.matches?.('input:not([type=radio]):not([type=checkbox]):not([type=file]):not([type=button]):not([type=submit]),textarea,select');
+  let t=null;
+  document.addEventListener("focusin",e=>{if(typing(e.target)){clearTimeout(t);document.body.classList.add("kb-open")}});
+  document.addEventListener("focusout",()=>{clearTimeout(t);t=setTimeout(()=>{if(!typing(document.activeElement))document.body.classList.remove("kb-open")},120)});
+})();
+
+/* ---------- Pembantu data & tampilan Beranda ---------- */
+let berandaToken=0,berandaTimer=null;
+function refreshBeranda(){
+  if(!currentUser)return;
+  clearTimeout(berandaTimer);
+  berandaTimer=setTimeout(()=>{
+    if(currentMode==="pengelola"&&currentPage==="dashboardPage")loadDashboard();
+    else if(currentMode==="anggota"&&currentPage==="anggotaHomePage")loadBerandaAnggota();
+  },350);
+}
+async function safeQ(builder){
+  try{
+    const r=await builder;
+    if(r?.error){console.warn("Beranda:",r.error);return {data:null,count:null,error:r.error}}
+    return r;
+  }catch(e){console.warn("Beranda:",e);return {data:null,count:null,error:e}}
+}
+function berandaSkeleton(){
+  return `<div class="skeleton b-sk" style="height:178px;border-radius:22px"></div>
+    <div class="skeleton b-sk" style="height:150px"></div>
+    <div class="skeleton b-sk" style="height:96px"></div>
+    <div class="skeleton b-sk" style="height:84px"></div>`;
+}
+function fmtTanggalPanjang(iso){
+  const d=new Date(iso+"T00:00:00");
+  return Number.isNaN(d.getTime())?String(iso||"-"):d.toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+}
+function daysFromToday(iso){
+  return Math.round((new Date(iso+"T00:00:00")-new Date(getToday()+"T00:00:00"))/86400000);
+}
+function countdownLabel(n){
+  if(n===0)return "Hari ini";
+  if(n===1)return "Besok";
+  if(n>=14&&n%7===0)return `${n/7} minggu lagi`;
+  return `${n} hari lagi`;
+}
+function meetingInfo(meetingDates,recordDates){
+  const today=getToday();
+  const md=[...new Set(meetingDates.filter(Boolean))].sort();
+  const next=md.find(d=>d>today)||null;
+  const past=[...new Set([...md.filter(d=>d<today),...recordDates.filter(d=>d&&d<today)])].sort();
+  return {today,todayMeeting:md.includes(today),next,last:past.length?past[past.length-1]:null};
+}
+function pct(h,total){return total?Math.round(h/total*100):null}
+function segBar(h,i,s,a){
+  const t=h+i+s+a;
+  if(!t)return `<div class="seg-bar is-empty"></div>`;
+  return `<div class="seg-bar" role="img" aria-label="Hadir ${h}, izin ${i}, sakit ${s}, alpa ${a}">${h?`<i class="s-hadir" style="flex:${h}"></i>`:""}${i?`<i class="s-izin" style="flex:${i}"></i>`:""}${s?`<i class="s-sakit" style="flex:${s}"></i>`:""}${a?`<i class="s-alpa" style="flex:${a}"></i>`:""}</div>`;
+}
+function countGrid(h,i,s,a){
+  return `<div class="count-grid"><div class="c-hadir"><strong>${h}</strong><small>Hadir</small></div><div class="c-izin"><strong>${i}</strong><small>Izin</small></div><div class="c-sakit"><strong>${s}</strong><small>Sakit</small></div><div class="c-alpa"><strong>${a}</strong><small>Alpa</small></div></div>`;
+}
+function heroCard({info,sub,actions}){
+  const {todayMeeting,next}=info;
+  const target=todayMeeting?info.today:next;
+  let label,chip,title,tile;
+  if(target){
+    const n=daysFromToday(target);
+    label=todayMeeting?"PERTEMUAN HARI INI":"PERTEMUAN BERIKUTNYA";
+    chip=countdownLabel(n);
+    title=fmtTanggalPanjang(target);
+    const b=tanggalBadge(target);
+    tile=`<strong>${escapeHTML(b.day)}</strong><small>${escapeHTML(b.month)}</small>`;
+  }else{
+    label="PERTEMUAN BERIKUTNYA";
+    chip="Belum dijadwalkan";
+    title="Belum ada jadwal";
+    tile=`<strong>–</strong><small>Jadwal</small>`;
+  }
+  return `<article class="hero-card${target?"":" is-empty"}">
+    <span class="hero-label">${label}</span>
+    <div class="hero-main"><div class="date-tile">${tile}</div><div class="hero-copy"><h2>${escapeHTML(title)}</h2><span class="hero-chip">${escapeHTML(chip)}</span></div></div>
+    ${sub?`<p class="hero-sub">${sub}</p>`:""}
+    ${actions?`<div class="hero-actions">${actions}</div>`:""}
+  </article>`;
+}
+function newsCard(row){
+  if(!row)return "";
+  const snippet=String(row.isi||"").replace(/\*/g,"").replace(/\s+/g," ").trim();
+  return `<button type="button" class="b-card b-link" data-go="news">
+    <div class="b-head"><div><span class="eyebrow">PENGUMUMAN TERBARU</span><h3>${escapeHTML(row.judul||"-")}</h3></div><span class="link-chip">Buka ›</span></div>
+    <p class="news-snip">${escapeHTML(snippet)}</p>
+    <time class="news-time">${escapeHTML(formatTanggalWaktu(row.dibuat_pada))}</time>
+  </button>`;
+}
+function berandaError(box,msg){
+  box.innerHTML=`<div class="b-card b-error"><strong>Gagal memuat ringkasan</strong><small>${escapeHTML(msg||"Periksa koneksi internet lalu coba lagi.")}</small><button type="button" class="secondary-button" data-go="retry">Coba Lagi</button></div>`;
+  box.dataset.ready="";
+}
+
+/* ---------- BERANDA PENGELOLA ---------- */
+async function loadDashboard(){
+  const box=$("berandaPengelola");
+  if(!box)return;
+  const token=++berandaToken;
+  if(currentPetugas?.nama)$("pengelolaDashboardTitle").textContent=`Halo, ${currentPetugas.nama}`;
+  if(!box.dataset.ready)box.innerHTML=berandaSkeleton();
+  const sb=supabaseClient;
+  const [ms,as,ps,pt,pg,pw]=await Promise.all([
+    safeQ(sb.from("Anggota").select("id,nama,kelas,status")),
+    safeQ(sb.from("Absensi").select("anggota_id,tanggal,status")),
+    safeQ(sb.from("Pengajuan").select("anggota_id,tanggal,jenis,status")),
+    safeQ(sb.from("Pertemuan").select("tanggal")),
+    safeQ(sb.from("Pengumuman").select("id,judul,isi,dibuat_pada").order("dibuat_pada",{ascending:false}).limit(1)),
+    safeQ(sb.from("PengajuanPassword").select("id",{count:"exact",head:true}).eq("status","menunggu"))
+  ]);
+  if(token!==berandaToken)return;
+  if(ms.error||as.error){berandaError(box,(ms.error||as.error)?.message);return}
+
+  const anggota=ms.data||[],absensi=as.data||[],pengajuan=ps.data||[];
+  const info=meetingInfo((pt.data||[]).map(x=>x.tanggal),[...absensi.map(x=>x.tanggal),...pengajuan.map(x=>x.tanggal)]);
+
+  // Ringkasan keseluruhan (aturan sama dengan "Rekap Keseluruhan")
+  const rk=Laporan.hitungRekap(anggota,absensi,pengajuan);
+  const tot=rk.rows.reduce((o,r)=>({h:o.h+r.hadir,i:o.i+r.izin,s:o.s+r.sakit,a:o.a+r.alpa}),{h:0,i:0,s:0,a:0});
+  const allCount=tot.h+tot.i+tot.s+tot.a;
+  const rata=pct(tot.h,allCount);
+  const totalPertemuan=new Set([...(pt.data||[]).map(x=>x.tanggal).filter(d=>d&&d<info.today),...rk.dates.filter(d=>d<=info.today)]).size;
+
+  // Hero
+  let sub="",actions="";
+  if(info.todayMeeting){
+    const hadirHariIni=new Set(absensi.filter(a=>a.tanggal===info.today&&String(a.status||"").toLowerCase()==="hadir").map(a=>a.anggota_id)).size;
+    sub=`<b>${hadirHariIni}</b> dari <b>${anggota.length}</b> anggota sudah hadir.`;
+    if(info.next)sub+=` Berikutnya: ${escapeHTML(fmtTanggalPanjang(info.next))}.`;
+    actions=`<button type="button" class="hero-btn solid" data-go="scan">Mulai Scan QR</button><button type="button" class="hero-btn" data-go="manual">Absen Manual</button>`;
+  }else if(info.next){
+    sub=`Anggota bisa mengajukan izin/sakit sampai hari pertemuan.`;
+    actions=`<button type="button" class="hero-btn solid" data-go="jadwal">Kelola Jadwal</button>`;
+  }else{
+    sub=`Tambahkan jadwal agar scan QR dan absensi manual bisa digunakan.`;
+    actions=`<button type="button" class="hero-btn solid" data-go="jadwal">Jadwalkan Pertemuan</button>`;
+  }
+
+  // Pertemuan terakhir (aturan sama dengan halaman Rekap per tanggal)
+  let lastCard="";
+  if(info.last){
+    const byMember=new Map(absensi.filter(a=>a.tanggal===info.last).map(a=>[a.anggota_id,String(a.status||"").toLowerCase()]));
+    let h=0,i=0,s=0,a=0;
+    for(const m of anggota){const st=byMember.get(m.id);if(st==="hadir")h++;else if(st==="izin")i++;else if(st==="sakit")s++;else a++}
+    const n=Math.abs(daysFromToday(info.last));
+    lastCard=`<article class="b-card">
+      <div class="b-head"><div><span class="eyebrow">PERTEMUAN TERAKHIR</span><h3>${escapeHTML(fmtTanggalPanjang(info.last))}</h3><small class="b-sub">${n===1?"Kemarin":n+" hari yang lalu"} · ${pct(h,anggota.length)??0}% hadir</small></div><button type="button" class="link-chip" data-go="rekap">Detail ›</button></div>
+      ${segBar(h,i,s,a)}${countGrid(h,i,s,a)}
+    </article>`;
+  }else{
+    lastCard=`<article class="b-card"><span class="eyebrow">PERTEMUAN TERAKHIR</span><p class="b-empty">Belum ada pertemuan yang tercatat.</p></article>`;
+  }
+
+  // Ringkasan keseluruhan
+  const overall=`<article class="b-card">
+    <div class="b-head"><div><span class="eyebrow">RINGKASAN KESELURUHAN</span></div><button type="button" class="link-chip" data-go="rekap">Rekap ›</button></div>
+    <div class="tiles">
+      <div class="tile"><strong>${anggota.length}</strong><small>Anggota</small></div>
+      <div class="tile"><strong>${totalPertemuan}</strong><small>Pertemuan</small></div>
+      <div class="tile"><strong>${rata===null?"–":rata+"%"}</strong><small>Rata-rata hadir</small></div>
+    </div>
+    ${allCount?`<div class="b-gap"></div>${segBar(tot.h,tot.i,tot.s,tot.a)}<div class="legend"><span><i class="s-hadir"></i>Hadir ${tot.h}</span><span><i class="s-izin"></i>Izin ${tot.i}</span><span><i class="s-sakit"></i>Sakit ${tot.s}</span><span><i class="s-alpa"></i>Alpa ${tot.a}</span></div>`:""}
+  </article>`;
+
+  // Perlu diproses
+  const reqIzin=pengajuan.filter(p=>String(p.status||"").toLowerCase()==="menunggu").length;
+  const reqPw=pw.count||0;
+  setTabBadge("more",reqIzin+reqPw>0);
+  const todo=`<article class="b-card">
+    <div class="b-head"><div><span class="eyebrow">PERLU DIPROSES</span></div></div>
+    <div class="todo-list">
+      <button type="button" class="todo-row" data-go="req-izin"><span>Pengajuan izin / sakit</span><b class="todo-count${reqIzin?"":" zero"}">${reqIzin}</b></button>
+      <button type="button" class="todo-row" data-go="req-pw"><span>Reset password anggota</span><b class="todo-count${reqPw?"":" zero"}">${reqPw}</b></button>
+    </div>
+  </article>`;
+
+  box.innerHTML=heroCard({info,sub,actions})+lastCard+overall+todo+newsCard((pg.data||[])[0]);
+  box.dataset.ready="1";
+}
+
+/* ---------- BERANDA ANGGOTA ---------- */
+function memberDateStatus(att,req){
+  if(att){const s=String(att.status||"").toLowerCase();return (s==="hadir"||s==="izin"||s==="sakit")?s:"alpa"}
+  if(req){
+    const r=String(req.status||"").toLowerCase();
+    if(r==="diterima")return req.jenis==="sakit"?"sakit":"izin";
+    if(r==="ditolak")return "alpa";
+    return "menunggu";
+  }
+  return null;
+}
+const STATUS_BADGE={hadir:["HADIR","status-hadir"],izin:["IZIN","status-izin"],sakit:["SAKIT","status-sakit"],alpa:["ALPA","status-tanpa"],menunggu:["MENUNGGU","status-izin"]};
+function statusBadge(st){const [t,c]=STATUS_BADGE[st]||["-",""];return `<span class="recap-status ${c}">${t}</span>`}
+
+async function loadBerandaAnggota(){
+  const box=$("berandaAnggota");
+  if(!box||!currentAnggota?.id)return;
+  const token=++berandaToken;
+  if(!box.dataset.ready)box.innerHTML=berandaSkeleton();
+  const sb=supabaseClient,id=currentAnggota.id;
+  const [pt,ab,pj,pg]=await Promise.all([
+    safeQ(sb.from("Pertemuan").select("tanggal")),
+    safeQ(sb.from("Absensi").select("tanggal,jam,status").eq("anggota_id",id)),
+    safeQ(sb.from("Pengajuan").select("tanggal,jenis,status,diajukan_pada").eq("anggota_id",id).order("diajukan_pada",{ascending:false})),
+    safeQ(sb.from("Pengumuman").select("id,judul,isi,dibuat_pada").order("dibuat_pada",{ascending:false}).limit(1))
+  ]);
+  if(token!==berandaToken)return;
+  if(ab.error||pj.error){berandaError(box,(ab.error||pj.error)?.message);return}
+
+  const absensi=ab.data||[],pengajuan=pj.data||[];
+  const attBy=new Map(),reqBy=new Map();
+  for(const r of absensi)if(r.tanggal&&!attBy.has(r.tanggal))attBy.set(r.tanggal,r);
+  for(const r of pengajuan)if(r.tanggal&&!reqBy.has(r.tanggal))reqBy.set(r.tanggal,r);
+  const info=meetingInfo((pt.data||[]).map(x=>x.tanggal),[...attBy.keys(),...reqBy.keys()]);
+
+  // Hitungan pribadi. Pertemuan terjadwal yang sudah lewat tanpa catatan dihitung Alpa
+  // (sama seperti Rekap per tanggal di mode pengelola). Tanggal yang belum terjadi tidak dihitung.
+  const c={hadir:0,izin:0,sakit:0,alpa:0};
+  const pastMeetings=(pt.data||[]).map(x=>x.tanggal).filter(d=>d&&d<info.today);
+  for(const d of new Set([...attBy.keys(),...reqBy.keys(),...pastMeetings])){
+    if(d>info.today)continue;
+    const st=memberDateStatus(attBy.get(d),reqBy.get(d))||(d<info.today?"alpa":null);
+    if(st&&c[st]!==undefined)c[st]++;
+  }
+  const total=c.hadir+c.izin+c.sakit+c.alpa;
+  const rata=pct(c.hadir,total);
+
+  // Hero
+  let sub="",actions="";
+  if(info.todayMeeting){
+    const st=memberDateStatus(attBy.get(info.today),reqBy.get(info.today));
+    if(st==="hadir"){
+      const jam=(attBy.get(info.today)?.jam&&attBy.get(info.today).metode!=="Pengajuan")?` pukul ${String(attBy.get(info.today).jam).slice(0,5)}`:"";
+      sub=`Kamu sudah <b>hadir</b>${jam}. Terima kasih!`;
+    }else if(st==="izin"||st==="sakit"){sub=`Status kamu hari ini: <b>${st==="izin"?"Izin":"Sakit"}</b>.`}
+    else if(st==="menunggu"){sub=`Pengajuanmu hari ini sedang <b>menunggu</b> persetujuan.`}
+    else{sub=`Kamu <b>belum absen</b> hari ini. Tunjukkan QR kamu ke pengelola.`;actions=`<button type="button" class="hero-btn solid" data-go="identitas">Tampilkan QR Saya</button>`}
+  }else if(info.next){
+    const rq=reqBy.get(info.next);
+    if(rq){
+      const rs=String(rq.status||"").toLowerCase();
+      sub=`Pengajuan ${rq.jenis==="sakit"?"sakit":"izin"} kamu: <b>${rs==="diterima"?"Diterima":rs==="ditolak"?"Ditolak":"Menunggu"}</b>.`;
+    }else{
+      sub=`Tidak bisa hadir? Ajukan izin atau sakit sebelum hari pertemuan.`;
+      actions=`<button type="button" class="hero-btn solid" data-go="pengajuan-tab">Ajukan Izin / Sakit</button>`;
+    }
+  }else{
+    sub=`Pengelola belum menjadwalkan pertemuan berikutnya.`;
+  }
+
+  // Pertemuan terakhir
+  let lastCard="";
+  if(info.last){
+    const st=memberDateStatus(attBy.get(info.last),reqBy.get(info.last))||"alpa";
+    const n=Math.abs(daysFromToday(info.last));
+    lastCard=`<article class="b-card">
+      <div class="b-head"><div><span class="eyebrow">PERTEMUAN TERAKHIR</span><h3>${escapeHTML(fmtTanggalPanjang(info.last))}</h3><small class="b-sub">${n===1?"Kemarin":n+" hari yang lalu"}</small></div>${statusBadge(st)}</div>
+      <p class="b-note">Statusmu pada pertemuan ini: <b>${escapeHTML(STATUS_BADGE[st]?.[0]||"-").toLowerCase()}</b>.</p>
+    </article>`;
+  }else{
+    lastCard=`<article class="b-card"><span class="eyebrow">PERTEMUAN TERAKHIR</span><p class="b-empty">Belum ada pertemuan yang tercatat.</p></article>`;
+  }
+
+  // Kehadiran saya
+  const mine=`<article class="b-card">
+    <div class="b-head"><div><span class="eyebrow">KEHADIRAN SAYA</span><h3>${rata===null?"Belum ada data":rata+"% hadir"}</h3><small class="b-sub">dari ${total} pertemuan</small></div><button type="button" class="link-chip" data-go="rekap">Riwayat ›</button></div>
+    ${segBar(c.hadir,c.izin,c.sakit,c.alpa)}${countGrid(c.hadir,c.izin,c.sakit,c.alpa)}
+  </article>`;
+
+  // Pengajuan terakhir
+  let reqCard="";
+  const lastReq=pengajuan[0];
+  if(lastReq){
+    const rs=String(lastReq.status||"").toLowerCase();
+    const label=rs==="diterima"?"DITERIMA":rs==="ditolak"?"DITOLAK":"MENUNGGU";
+    const cls=rs==="diterima"?"status-hadir":rs==="ditolak"?"status-tanpa":"status-izin";
+    reqCard=`<button type="button" class="b-card b-link" data-go="rekap">
+      <div class="b-head" style="margin:0"><div><span class="eyebrow">PENGAJUAN TERAKHIR</span><h3>${lastReq.jenis==="sakit"?"Sakit":"Izin"} · ${escapeHTML(formatTanggal(lastReq.tanggal))}</h3></div><span class="recap-status ${cls}">${label}</span></div>
+    </button>`;
+  }
+
+  box.innerHTML=heroCard({info,sub,actions})+lastCard+mine+reqCard+newsCard((pg.data||[])[0]);
+  box.dataset.ready="1";
+}
+
+/* ---------- Aksi di Beranda ---------- */
+function berandaGo(action){
+  switch(action){
+    case "rekap":navTo("rekap");break;
+    case "scan":navTo("scan");break;
+    case "identitas":navTo("identitas");break;
+    case "pengajuan-tab":navTo("pengajuan");break;
+    case "jadwal":$("jadwalkanPertemuanButton").click();break;
+    case "manual":markPendingTab("more");$("manualAbsensiButton").click();break;
+    case "req-izin":markPendingTab("more");showPage("pengajuanPage");loadPengajuanRequests();break;
+    case "req-pw":markPendingTab("more");$("pengajuanPasswordButton").click();break;
+    case "news":
+      if(currentMode==="anggota")navTo("pengumuman");
+      else{markPendingTab("more");$("pengumumanButton").click()}
+      break;
+    case "retry":
+      if(currentMode==="pengelola")loadDashboard();else loadBerandaAnggota();
+      break;
+  }
+}
+["berandaPengelola","berandaAnggota"].forEach(id=>$(id).addEventListener("click",e=>{
+  const el=e.target.closest("[data-go]");
+  if(el)berandaGo(el.dataset.go);
+}));
+
 /* ---------- INIT ---------- */
 window.addEventListener("popstate",async(event)=>{
+  closeMoreSheet();
   if(currentPage==="scannerPage")stopScanner();
   const previous=navigationStack.pop();
   if(previous){
@@ -2279,6 +2747,7 @@ window.addEventListener("popstate",async(event)=>{
     showPage(previous,{pushHistory:false});
     isPopStateNavigation=false;
     if(currentPage==="dashboardPage"&&currentMode==="pengelola")await loadDashboard();
+    else if(currentPage==="anggotaHomePage"&&currentMode==="anggota")await loadBerandaAnggota();
     return;
   }
   // Root halaman aplikasi: tahan tombol Back agar tidak langsung meninggalkan SPA.
@@ -2289,6 +2758,7 @@ window.addEventListener("popstate",async(event)=>{
   }else if(currentMode==="anggota"){
     resetNavigation("anggotaHomePage");
     showPage("anggotaHomePage",{pushHistory:false});
+    await loadBerandaAnggota();
   }else{
     resetNavigation("modePage");
     showPage("loginPage",{pushHistory:false});
@@ -2335,12 +2805,11 @@ async function restoreSession(){
           currentAnggota=member;
           setMode("anggota");
           $("anggotaDashboardTitle").textContent=`Halo, ${member.nama}`;
-          $("anggotaDashboardSubtitle").textContent=`${member.kelas || "Anggota"} · Dashboard pribadi`;
+          $("anggotaDashboardSubtitle").textContent=`${member.kelas || "Anggota"} · Ringkasan kehadiranmu`;
           resetNavigation("anggotaHomePage");
           showPage("anggotaHomePage",{pushHistory:false});
-          showDashboardSkeleton("anggotaHomePage");
           updateFirstPasswordNotice();
-          hideDashboardSkeleton("anggotaHomePage");
+          loadBerandaAnggota();
         }
       }
     }else{
@@ -2365,3 +2834,48 @@ supabaseClient.auth.onAuthStateChange((_event,session)=>{
 setupRealtime();
 window.addEventListener("beforeunload",()=>{stopScanner();if(realtimeChannel)supabaseClient.removeChannel(realtimeChannel)});
 restoreSession();
+
+
+/* ---------- DONASI QRIS DINAMIS ---------- */
+(function(){
+  // QRIS statis milik "Gilang Stan, Komputer" (CRC valid). Diubah menjadi dinamis:
+  // tag 01 -> "12", tag 54 (nominal) disisipkan, CRC16-CCITT dihitung ulang.
+  const QRIS_STATIS="00020101021126570011ID.DANA.WWW011893600915303600049202090360004920303UMI51440014ID.CO.QRIS.WWW0215ID10266155735770303UMI5204504553033605802ID5921Gilang Stan, Komputer6008Sukabumi610543351630408A1";
+  const MIN=1000,MAX=10000000;
+  const crc16=s=>{let c=0xFFFF;for(let i=0;i<s.length;i++){c^=s.charCodeAt(i)<<8;for(let k=0;k<8;k++)c=(c&0x8000)?((c<<1)^0x1021):(c<<1);c&=0xFFFF}return c.toString(16).toUpperCase().padStart(4,"0")};
+  const parse=s=>{const o=[];let i=0;while(i<s.length){const l=parseInt(s.substr(i+2,2),10);o.push([s.substr(i,2),s.substr(i+4,l)]);i+=4+l}return o};
+  function qrisDinamis(nominal){
+    const f=parse(QRIS_STATIS).filter(([t])=>t!=="63"&&t!=="54").map(([t,v])=>t==="01"?[t,"12"]:[t,v]);
+    const n=f.findIndex(([t])=>+t>54);
+    f.splice(n<0?f.length:n,0,["54",String(nominal)]);
+    const body=f.map(([t,v])=>t+String(v.length).padStart(2,"0")+v).join("")+"6304";
+    return body+crc16(body);
+  }
+  const rp=n=>"Rp "+Number(n).toLocaleString("id-ID");
+  const $d=id=>document.getElementById(id);
+  const input=$d("donasiNominal");
+  if(!input)return;
+  const digits=()=>parseInt(input.value.replace(/\D/g,"")||"0",10);
+  const msg=(t)=>{const m=$d("donasiMessage");m.textContent=t||"";m.className="message"+(t?" error":"")};
+  function show(step){$d("donasiForm").classList.toggle("hidden",step!=="form");$d("donasiResult").classList.toggle("hidden",step!=="result")}
+  function open(){input.value="";msg("");show("form");$d("donasiModal").classList.remove("hidden");setTimeout(()=>input.focus(),120)}
+  function close(){$d("donasiModal").classList.add("hidden")}
+  $d("donasiButton").addEventListener("click",open);
+  $d("closeDonasi").addEventListener("click",close);
+  $d("donasiSelesai").addEventListener("click",close);
+  $d("donasiModal").querySelector("[data-close-donasi]").addEventListener("click",close);
+  $d("donasiUlang").addEventListener("click",()=>{show("form");setTimeout(()=>input.focus(),60)});
+  input.addEventListener("input",()=>{const d=digits();input.value=d?d.toLocaleString("id-ID"):"";msg("")});
+  $d("donasiModal").querySelectorAll("[data-nominal]").forEach(b=>b.addEventListener("click",()=>{input.value=Number(b.dataset.nominal).toLocaleString("id-ID");msg("")}));
+  $d("donasiForm").addEventListener("submit",e=>{
+    e.preventDefault();
+    const n=digits();
+    if(n<MIN){msg("Nominal minimal "+rp(MIN)+".");return}
+    if(n>MAX){msg("Nominal maksimal "+rp(MAX)+".");return}
+    if(!window.QRCode){msg("Pembuat QR belum siap. Periksa koneksi internet lalu coba lagi.");return}
+    const box=$d("donasiQr");box.innerHTML="";
+    new QRCode(box,{text:qrisDinamis(n),width:248,height:248,colorDark:"#000000",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});
+    $d("donasiTotal").textContent=rp(n);
+    show("result");
+  });
+})();

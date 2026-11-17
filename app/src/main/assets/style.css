@@ -1490,3 +1490,454 @@ input[type="file"]::file-selector-button{
 }
 .announcement-body a.announcement-link:hover{color:#1f5f94}
 .announcement-body a.announcement-link:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:3px}
+
+
+/* =====================================================================
+   TAB BAR · BERANDA · SHEET "LAINNYA"  (v3.1.0)
+   ===================================================================== */
+:root{--tabbar-h:64px}
+
+/* ---- Tab bar ---- */
+.tab-bar{
+  position:fixed;left:0;right:0;bottom:0;z-index:950;
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  background:rgba(255,255,255,.95);
+  backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+  border-top:1px solid var(--line);
+  box-shadow:0 -10px 30px rgba(43,91,130,.10);
+}
+.tab-bar.hidden{display:none!important}
+.tab-bar-inner{
+  display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);
+  max-width:var(--content);margin:0 auto;height:var(--tabbar-h);padding:6px 6px 4px;
+}
+.tab-item{
+  position:relative;min-width:0;padding:0;border:0;background:none;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  color:#7b93a8;font-size:10.5px;font-weight:600;letter-spacing:.1px;
+  -webkit-tap-highlight-color:transparent;
+}
+.tab-ico{width:48px;height:29px;border-radius:15px;display:grid;place-items:center;transition:background .2s ease,color .2s ease}
+.tab-item svg{width:21px;height:21px}
+.tab-item[data-tab="more"] svg{fill:currentColor;stroke:none}
+.tab-label{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tab-item:active .tab-ico{background:rgba(106,169,223,.14)}
+.tab-item.active{color:#3b83bd;font-weight:800}
+.tab-item.active .tab-ico{background:rgba(106,169,223,.22)}
+.tab-badge{position:absolute;top:5px;left:calc(50% + 7px);width:10px;height:10px;border-radius:50%;background:var(--red);border:2px solid #fff}
+
+body.has-tabbar #app{padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px))}
+body.has-tabbar .toast{bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 14px)}
+body.kb-open .tab-bar{display:none!important}
+body.kb-open #app{padding-bottom:0}
+body.has-tabbar .app-footer{padding-bottom:10px}
+
+/* ---- Sheet "Lainnya" ---- */
+.sheet{position:fixed;inset:0;z-index:1200}
+.sheet.hidden{display:none!important}
+.sheet-backdrop{position:absolute;inset:0;background:rgba(5,18,32,.46);animation:sheetFade .2s ease}
+.sheet-card{
+  position:absolute;left:0;right:0;bottom:0;max-width:var(--content);margin:0 auto;
+  padding:10px 16px calc(18px + env(safe-area-inset-bottom,0px));
+  background:#f7fbff;border-radius:24px 24px 0 0;box-shadow:0 -18px 50px rgba(5,18,32,.28);
+  animation:sheetUp .24s ease;max-height:86vh;overflow:auto;
+}
+.sheet-grab{width:40px;height:4px;border-radius:4px;background:rgba(93,145,190,.35);margin:0 auto 10px}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;margin:0 2px 12px}
+.sheet-head strong{font-size:17px}
+.sheet-list{display:grid;gap:9px}
+.sheet-list .menu-card{min-height:68px;padding:10px 38px 10px 10px}
+.sheet-list .menu-icon{width:40px;height:40px}
+@keyframes sheetUp{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes sheetFade{from{opacity:0}to{opacity:1}}
+
+/* ---- Beranda ---- */
+.beranda{display:grid;gap:14px}
+.b-sk{border-radius:20px}
+.b-card{
+  position:relative;width:100%;padding:16px;text-align:left;color:var(--text);
+  border:1px solid var(--line);border-radius:20px;
+  background:linear-gradient(145deg,rgba(255,255,255,.90),rgba(242,248,253,.80));
+  box-shadow:0 10px 28px rgba(43,91,130,.09);
+}
+button.b-card{font:inherit;cursor:pointer;display:block;-webkit-tap-highlight-color:transparent}
+button.b-card:active{transform:scale(.99)}
+.b-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:13px}
+.b-head>div{min-width:0}
+.b-head h3{margin:5px 0 0;font-size:16.5px;line-height:1.28;letter-spacing:-.2px}
+.b-sub{display:block;margin-top:4px;color:var(--muted);font-size:12.5px}
+.b-note{margin:12px 0 0;color:var(--muted);font-size:13.5px;line-height:1.5}
+.b-note b{color:var(--text)}
+.b-empty{margin:8px 0 0;color:var(--muted);font-size:13.5px}
+.b-gap{height:14px}
+.link-chip{
+  flex:none;border:1px solid var(--line);background:rgba(106,169,223,.10);color:#3b83bd;
+  border-radius:999px;padding:6px 11px;font-size:12px;font-weight:700;white-space:nowrap;
+}
+.b-error{display:grid;gap:8px;text-align:center}
+.b-error small{color:var(--muted)}
+
+/* Hero: pertemuan berikutnya */
+.hero-card{
+  position:relative;overflow:hidden;padding:18px;border-radius:22px;color:#fff;
+  background:linear-gradient(135deg,#3f8ccb 0%,#64a6dd 55%,#8bc5ef 100%);
+  box-shadow:0 16px 34px rgba(58,127,184,.30);
+}
+.hero-card::after{content:"";position:absolute;right:-46px;top:-52px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.13)}
+.hero-card::before{content:"";position:absolute;right:30px;bottom:-70px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.08)}
+.hero-card.is-empty{background:linear-gradient(135deg,#6f8fab 0%,#8aa7c0 100%);box-shadow:0 14px 30px rgba(90,120,150,.25)}
+.hero-label{position:relative;z-index:1;display:block;font-size:11.5px;font-weight:800;letter-spacing:1.4px;opacity:.92}
+.hero-main{position:relative;z-index:1;display:flex;align-items:center;gap:14px;margin-top:12px}
+.date-tile{
+  flex:none;width:62px;height:68px;border-radius:17px;background:rgba(255,255,255,.96);color:#2f6f9f;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  box-shadow:0 8px 18px rgba(20,60,100,.18);
+}
+.date-tile strong{font-size:27px;line-height:1;letter-spacing:-1px}
+.date-tile small{margin-top:4px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.7px}
+.hero-copy{min-width:0}
+.hero-copy h2{margin:0 0 8px;font-size:18px;line-height:1.25;letter-spacing:-.3px}
+.hero-chip{display:inline-block;padding:4px 11px;border-radius:999px;background:rgba(255,255,255,.24);font-size:12px;font-weight:700}
+.hero-sub{position:relative;z-index:1;margin:13px 0 0;font-size:13.5px;line-height:1.5;opacity:.96}
+.hero-actions{position:relative;z-index:1;display:flex;gap:8px;margin-top:14px}
+.hero-btn{
+  flex:1;min-height:42px;padding:0 10px;border-radius:12px;border:1px solid rgba(255,255,255,.55);
+  background:rgba(255,255,255,.16);color:#fff;font-size:13.5px;font-weight:700;
+}
+.hero-btn.solid{background:#fff;border-color:#fff;color:#2f6f9f}
+.hero-card.is-empty .hero-btn.solid{color:#4a6a86}
+
+/* Bar & hitungan status */
+.seg-bar{display:flex;gap:2px;height:10px;border-radius:99px;overflow:hidden;background:rgba(106,169,223,.15)}
+.seg-bar>i{display:block;min-width:4px}
+.s-hadir{background:var(--green)}
+.s-izin{background:#6da9d8}
+.s-sakit{background:var(--yellow)}
+.s-alpa{background:var(--red)}
+.count-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:13px}
+.count-grid>div{padding:10px 2px 9px;text-align:center;border-radius:14px;border:1px solid var(--line);background:rgba(106,169,223,.07)}
+.count-grid strong{display:block;font-size:20px;line-height:1}
+.count-grid small{display:block;margin-top:6px;font-size:11px;font-weight:600;color:var(--muted)}
+.c-hadir strong{color:var(--green)}
+.c-izin strong{color:#5b9ac9}
+.c-sakit strong{color:#c99a3f}
+.c-alpa strong{color:var(--red)}
+
+/* Ringkasan keseluruhan */
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.tile{padding:12px 6px;text-align:center;border-radius:15px;border:1px solid var(--line);background:rgba(106,169,223,.08)}
+.tile strong{display:block;font-size:22px;line-height:1;letter-spacing:-.5px}
+.tile small{display:block;margin-top:7px;font-size:11px;font-weight:600;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:11px;font-size:12px;color:var(--muted);font-weight:600}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:9px;height:9px;border-radius:50%;display:inline-block}
+
+/* Perlu diproses */
+.todo-list{display:grid;gap:8px}
+.todo-row{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;
+  padding:12px 12px 12px 14px;border-radius:14px;border:1px solid var(--line);
+  background:rgba(255,255,255,.7);color:var(--text);font-size:14px;font-weight:600;text-align:left;
+}
+.todo-count{
+  flex:none;min-width:30px;height:30px;padding:0 9px;border-radius:999px;display:grid;place-items:center;
+  font-size:13px;font-weight:800;background:rgba(223,120,135,.16);color:#c4546a;
+}
+.todo-count.zero{background:rgba(88,185,144,.16);color:#3d9a73}
+
+/* Pengumuman terbaru */
+.news-snip{
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  margin:0;color:var(--muted);font-size:13.5px;line-height:1.5;
+}
+.news-time{display:block;margin-top:9px;font-size:12px;color:#8aa0b3}
+
+/* ---- Halaman Identitas ---- */
+.identitas-card{margin-top:18px;padding:20px 18px;display:flex;flex-direction:column;align-items:center;text-align:center}
+.identitas-qr{padding:14px;background:#fff;border-radius:18px;border:1px solid var(--line);box-shadow:0 8px 22px rgba(43,91,130,.10);line-height:0}
+.identitas-qr img,.identitas-qr canvas{max-width:100%;height:auto!important}
+.identitas-card .qr-note{margin:14px auto 4px}
+.identitas-card .identity-grid{width:100%;margin:12px 0 14px;text-align:left}
+.identitas-card .identity-grid>div{border-color:var(--line);background:rgba(106,169,223,.07)}
+.identitas-card .identity-actions{width:100%}
+
+@media(max-width:430px){
+  .b-card{padding:14px}
+  .hero-card{padding:16px}
+  .hero-copy h2{font-size:17px}
+  .date-tile{width:58px;height:64px}
+  .tile strong{font-size:20px}
+  .count-grid{gap:6px}
+}
+@media(max-width:340px){
+  .tab-item{font-size:9.5px}
+  .tab-ico{width:40px}
+  .hero-actions{flex-direction:column}
+}
+
+
+/* =====================================================================
+   v3.2 — RESPONSIF, ANIMASI 60FPS, TOMBOL SCAN QR
+   Semua animasi hanya memakai transform + opacity (dikomposit GPU).
+   ===================================================================== */
+
+/* ---------- Dasar responsif ---------- */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{overflow-x:hidden;-webkit-tap-highlight-color:transparent}
+img,canvas,video{max-width:100%}
+#app{position:relative}
+.page{overflow-wrap:anywhere}
+#qr-reader{width:100%!important;max-width:100%;border:0!important}
+#qr-reader video{width:100%!important;height:auto!important;border-radius:16px}
+input,select,textarea{font-size:16px;min-height:46px}   /* 16px mencegah auto-zoom di iOS/Android */
+textarea{min-height:96px}
+.primary-button,.secondary-button{min-height:46px}
+.menu-icon svg{width:22px;height:22px}
+.stat-card svg,.avatar svg{width:20px;height:20px}
+
+/* Layar sangat kecil */
+@media(max-width:340px){
+  .brand-logo{width:46px;height:46px}
+  .brand-text strong{font-size:15.5px}
+  .brand-text small{font-size:12px}
+  .page{padding-top:18px}
+  .header-inner{height:66px}
+}
+
+/* Tablet */
+@media(min-width:700px){
+  :root{--content:760px}
+  .brand-text strong{font-size:18.5px}
+  .menu-icon{width:46px;height:46px}
+  .menu-icon svg{width:24px;height:24px}
+  .stat-card strong{font-size:24px}
+  .stat-card small{font-size:13px}
+  .tab-item{font-size:12px}
+  .tab-item svg{width:23px;height:23px}
+}
+
+/* Desktop */
+@media(min-width:1000px){
+  :root{--content:980px;--tabbar-h:68px}
+  body{font-size:16px}
+  .page{padding:38px 0 56px}
+  .header-inner{height:84px}
+  .brand-logo{width:58px;height:58px}
+  .brand-text strong{font-size:20px}
+  .brand-text small{font-size:14px}
+  .member-list,.request-list{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+  .tab-bar-inner{padding:6px 24px 4px}
+  .tab-item:hover .tab-ico{background:rgba(106,169,223,.14)}
+}
+@media(min-width:1400px){:root{--content:1120px}}
+
+/* HP landscape (layar pendek) */
+@media(max-height:480px) and (orientation:landscape){
+  :root{--tabbar-h:52px}
+  .page{padding-top:14px}
+  .tab-label{display:none}
+  .tab-item[data-tab="scan"] .tab-ico{margin-top:-14px;width:50px;height:50px}
+}
+
+/* ---------- TOMBOL SCAN QR (mode pengelola) ---------- */
+.tab-item[data-tab="scan"]{overflow:visible;color:#2a74c9;font-weight:800;z-index:2}
+.tab-item[data-tab="scan"] .tab-ico{
+  position:relative;width:60px;height:60px;border-radius:50%;margin-top:-28px;
+  background:linear-gradient(145deg,#5db4f7 0%,#2f86e6 55%,#1d5fc4 100%);
+  color:#fff;border:4px solid #fff;
+  box-shadow:0 8px 18px rgba(36,112,214,.45);
+  transition:transform .18s ease;
+}
+.tab-item[data-tab="scan"] .tab-ico::after{
+  content:"";position:absolute;inset:-4px;border-radius:50%;
+  border:2px solid rgba(47,134,230,.60);
+  animation:scanPulse 2.2s ease-out infinite;pointer-events:none;
+}
+.tab-item[data-tab="scan"] svg{width:28px;height:28px;stroke-width:2.2}
+.tab-item[data-tab="scan"] .tab-label{margin-top:2px}
+.tab-item[data-tab="scan"]:active .tab-ico,
+.tab-item[data-tab="scan"].active .tab-ico{background:linear-gradient(145deg,#5db4f7 0%,#2f86e6 55%,#1d5fc4 100%)}
+.tab-item[data-tab="scan"]:active .tab-ico{transform:scale(.92)}
+.tab-item[data-tab="scan"].active{color:#1d5fc4}
+.tab-item[data-tab="scan"].active .tab-ico{box-shadow:0 0 0 4px rgba(47,134,230,.20),0 8px 20px rgba(29,95,196,.5)}
+body.dark-mode .tab-item[data-tab="scan"] .tab-ico{border-color:#0f2740}
+@media(max-width:340px){.tab-item[data-tab="scan"] .tab-ico{width:52px;height:52px;margin-top:-22px}.tab-item[data-tab="scan"] svg{width:24px;height:24px}}
+@keyframes scanPulse{0%{transform:scale(1);opacity:.75}70%,100%{transform:scale(1.5);opacity:0}}
+
+/* ---------- ANIMASI: halaman masuk / keluar ---------- */
+.page.active{animation:pageIn .26s cubic-bezier(.22,.8,.3,1) both}
+@keyframes pageIn{from{opacity:0;transform:translate3d(0,14px,0)}to{opacity:1;transform:none}}
+.page.page-out{
+  display:block;position:absolute;top:0;left:0;right:0;z-index:0;pointer-events:none;
+  animation:pageOut .16s ease-in both;
+}
+@keyframes pageOut{from{opacity:1;transform:none}to{opacity:0;transform:translate3d(0,-8px,0)}}
+
+/* ---------- ANIMASI: elemen muncul berurutan (8 pertama saja) ---------- */
+.page.active .menu-card,.page.active .stat-card,.page.active .mode-card,.page.active .choice-card,
+.page.active .b-card,.page.active .request-card,.page.active .member-card,
+.page.active .recap-item,.page.active .compact-member,.page.active .panel{
+  animation:riseIn .38s cubic-bezier(.22,.8,.3,1) both;
+}
+.page.active :is(.menu-card,.stat-card,.mode-card,.choice-card,.b-card,.request-card,.member-card,.recap-item,.compact-member):nth-child(2){animation-delay:.04s}
+.page.active :is(.menu-card,.stat-card,.mode-card,.choice-card,.b-card,.request-card,.member-card,.recap-item,.compact-member):nth-child(3){animation-delay:.08s}
+.page.active :is(.menu-card,.stat-card,.mode-card,.choice-card,.b-card,.request-card,.member-card,.recap-item,.compact-member):nth-child(4){animation-delay:.12s}
+.page.active :is(.menu-card,.stat-card,.mode-card,.choice-card,.b-card,.request-card,.member-card,.recap-item,.compact-member):nth-child(5){animation-delay:.16s}
+.page.active :is(.menu-card,.stat-card,.mode-card,.choice-card,.b-card,.request-card,.member-card,.recap-item,.compact-member):nth-child(6){animation-delay:.2s}
+.page.active :is(.menu-card,.stat-card,.mode-card,.choice-card,.b-card,.request-card,.member-card,.recap-item,.compact-member):nth-child(n+7){animation-delay:.24s}
+@keyframes riseIn{from{opacity:0;transform:translate3d(0,16px,0) scale(.98)}to{opacity:1;transform:none}}
+
+/* ---------- ANIMASI: modal, sheet, toast (masuk + keluar) ---------- */
+.modal:not(.hidden),.app-modal:not(.hidden){animation:fadeIn .2s ease both}
+.modal:not(.hidden) .modal-card,.app-modal:not(.hidden) .modal-card{animation:popIn .26s cubic-bezier(.22,.9,.3,1.05) both}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes popIn{from{opacity:0;transform:translate3d(0,18px,0) scale(.96)}to{opacity:1;transform:none}}
+.sheet-card{animation:sheetUp .28s cubic-bezier(.22,.8,.3,1) both}
+@keyframes sheetUp{from{transform:translate3d(0,100%,0)}to{transform:none}}
+.toast{transition:opacity .22s ease,transform .22s cubic-bezier(.22,.9,.3,1.1)}
+.toast.show{transform:translate(-50%,0) scale(1)}
+
+/* Animasi KELUAR modal & sheet tanpa JS (browser baru; yang lama langsung tertutup) */
+@supports(transition-behavior:allow-discrete){
+  .modal,.app-modal,.sheet{transition:opacity .18s ease,display .18s allow-discrete}
+  .modal.hidden,.app-modal.hidden,.sheet.hidden{opacity:0}
+  .sheet-card{transition:transform .2s ease,opacity .2s ease}
+  .sheet.hidden .sheet-card{transform:translate3d(0,100%,0)}
+}
+
+/* ---------- ANIMASI: interaksi & di tempat (idle) ---------- */
+.primary-button,.secondary-button,.menu-card,.mode-card,.choice-card,.chip,.seg-btn,.back-button,.mini-button,.compact-member,.recap-item,.tab-item{
+  transition:transform .14s ease,background-color .18s ease,border-color .18s ease,opacity .18s ease;
+}
+.primary-button:active,.secondary-button:active,.menu-card:active,.mode-card:active,.choice-card:active,
+.chip:active,.seg-btn:active,.back-button:active,.mini-button:active,.compact-member:active{transform:scale(.97)}
+.tab-item.active .tab-ico svg{animation:tabPop .32s cubic-bezier(.3,1.5,.5,1) both}
+@keyframes tabPop{from{transform:scale(.7)}to{transform:scale(1)}}
+.tab-badge{animation:badgePulse 1.8s ease-in-out infinite}
+@keyframes badgePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.25)}}
+.spinner{will-change:transform}
+
+/* ---------- Mode HP kentang: matikan efek mahal & animasi idle ---------- */
+.low-end *{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.low-end .page.active .menu-card,.low-end .page.active .stat-card,.low-end .page.active .mode-card,
+.low-end .page.active .choice-card,.low-end .page.active .b-card,.low-end .page.active .request-card,
+.low-end .page.active .member-card,.low-end .page.active .recap-item,.low-end .page.active .compact-member,
+.low-end .page.active .panel{animation:none!important}
+.low-end .page.active{animation-duration:.18s}
+.low-end .tab-item[data-tab="scan"] .tab-ico::after,.low-end .tab-badge,.low-end .tab-item.active .tab-ico svg{animation:none!important}
+
+@media(prefers-reduced-motion:reduce){
+  .page.active,.page.page-out,.page.active *{animation:none!important}
+  .tab-item[data-tab="scan"] .tab-ico::after,.tab-badge{animation:none!important}
+}
+body.has-tabbar .app-footer{padding-bottom:34px}
+
+
+/* =====================================================================
+   v3.3 — SKALA TIPOGRAFI SERAGAM, RUANG DALAM BORDER, TOMBOL DONASI
+   ===================================================================== */
+:root{
+  --fs-title:clamp(22px,5.6vw,26px);   /* JUDUL halaman (h1) */
+  --fs-sub:17px;                        /* SUB JUDUL (h2/h3, judul kartu/modal) */
+  --fs-body:14px;                       /* teks isi / deskripsi */
+  --fs-btn:15px;                        /* teks tombol */
+  --fs-small:12.5px;                    /* keterangan kecil */
+  --pad-in:16px;                        /* jarak minimum teks ke border */
+}
+
+/* Judul */
+.landing-intro h1,.section-heading h1,.login-intro h1{
+  font-size:var(--fs-title)!important;line-height:1.2!important;letter-spacing:-.3px!important;margin-bottom:6px;
+}
+/* Sub judul */
+.panel-title h2,.modal-card h2,.modal-heading h2,#jadwalPertemuanModal .modal-heading h2,
+.pengajuan-panel .panel-title h2,.pengajuan-manager-head h2,.hero-copy h2,.b-head h3,
+.list-head strong,.menu-card strong,.mode-card strong,.choice-card strong,.sheet-head strong{
+  font-size:var(--fs-sub)!important;line-height:1.3!important;letter-spacing:-.1px!important;
+}
+.modal-card h2{margin-right:0}
+/* Teks isi / deskripsi */
+.landing-intro p,.section-heading p,.panel-title p,.pengajuan-panel .panel-title p,.modal-muted,
+.modal-heading p,.news-snip,.menu-card small,.mode-card small,.choice-card small,.empty-state{
+  font-size:var(--fs-body)!important;line-height:1.55!important;
+}
+.eyebrow{font-size:11.5px!important;letter-spacing:.8px}
+.field>span,.field label{font-size:var(--fs-body)}
+small,.list-head span{font-size:var(--fs-small)}
+
+/* Tombol: tinggi mengikuti isi, teks tidak pernah terpotong */
+.primary-button,.secondary-button,.add-button,.mini-button,.chip,.seg-btn{
+  height:auto!important;min-height:46px;padding:11px 18px!important;
+  font-size:var(--fs-btn)!important;line-height:1.3!important;
+  white-space:normal!important;text-align:center;overflow-wrap:anywhere;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+}
+.mini-button{min-height:40px;padding:9px 12px!important;font-size:13.5px!important}
+.seg-btn{min-height:42px;padding:9px 8px!important;font-size:13.5px!important}
+.chip{min-height:42px;padding:9px 14px!important;font-size:13.5px!important}
+.primary-button.full,.form-actions .primary-button,.form-actions .secondary-button{flex:1 1 140px}
+.form-actions,.pengajuan-actions,.identity-actions,.request-actions,.filter-actions{gap:10px;flex-wrap:wrap}
+.back-button.compact,.icon-button{width:44px;height:44px;padding:0!important;min-height:44px}
+.back-button:not(.compact){height:auto!important;min-height:44px;padding:10px 16px!important;white-space:normal}
+
+/* Lencana & status: ada ruang di dalam border */
+.status-pill,.recap-status{padding:6px 12px!important;line-height:1.25;font-size:12px!important;white-space:normal;text-align:center}
+.count-badge{height:auto!important;min-height:32px;min-width:34px;padding:5px 11px!important}
+.tab-label{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;line-height:1.1;text-align:center;font-size:10.5px}
+.tab-item{padding:0 2px}
+
+/* Kartu & panel: jarak teks ke garis border */
+.menu-card,.mode-card,.choice-card{padding:14px 46px 14px 14px!important}
+.stat-card{padding:14px!important}
+.request-card,.compact-member,.recap-item,.b-card,.panel,.announcement-item,.identity-grid>div{padding:var(--pad-in)}
+.member-card{padding:14px!important}
+.recap-item .recap-row-main,.member-recap-row .recap-row-main{padding:12px var(--pad-in)!important}
+.panel{padding:18px}
+.modal-card{padding:24px 22px}
+.sheet-card{padding-left:18px;padding-right:18px}
+.field input,.field select,.field textarea,input,select,textarea{padding:11px 14px;line-height:1.35}
+.message:not(:empty){padding:10px 14px}
+.toast{padding:12px 18px;line-height:1.45}
+
+/* Teks tidak lagi terpotong "..." — turun baris */
+.member-info strong,.member-info span,.compact-member-info strong,.selected-member-main strong,
+.recap-info strong,.recap-info span,.recap-person strong,.recap-stats small,
+.announcement-author-text strong{
+  white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:anywhere;line-height:1.35;
+}
+.recap-date small{white-space:normal}
+.announcement-date{white-space:normal}
+.brand-text{min-width:0}
+.brand-text strong,.brand-text small{overflow-wrap:anywhere}
+
+/* ---------- HEADER + TOMBOL DONASI ---------- */
+.header-inner{display:flex;align-items:center;gap:10px;height:auto;min-height:76px;padding:10px 14px}
+.header-inner .brand{flex:1 1 auto;min-width:0;width:auto;height:auto}
+.donate-btn{
+  flex:none;display:inline-flex;align-items:center;gap:7px;
+  min-height:44px;padding:9px 16px;border:0;border-radius:999px;
+  background:linear-gradient(135deg,#9FBFFB,#618AD7);color:#fff;
+  font-size:var(--fs-btn);font-weight:800;line-height:1.2;
+  box-shadow:0 6px 14px rgb(169, 186, 216);
+  transition:transform .14s ease;
+}
+.donate-btn svg{width:18px;height:18px;fill:currentColor;stroke:none;animation:heartBeat 2.4s ease-in-out infinite}
+.donate-btn:active{transform:scale(.95)}
+.low-end .donate-btn svg{animation:none}
+@keyframes heartBeat{0%,60%,100%{transform:scale(1)}70%{transform:scale(1.22)}80%{transform:scale(1)}90%{transform:scale(1.14)}}
+@media(max-width:380px){.donate-btn{padding:9px 12px;gap:5px;font-size:14px}.header-inner{gap:8px;padding:10px}}
+
+/* ---------- MODAL DONASI ---------- */
+#donasiModal .modal-card{width:min(440px,100%)}
+.donasi-chips{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:2px 0 14px}
+.donasi-chips .chip{padding:9px 4px!important;min-height:44px;font-size:13px!important}
+.donasi-amount{position:relative}
+.donasi-amount>b{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:var(--fs-body);pointer-events:none}
+.donasi-amount input{padding-left:46px;font-size:18px;font-weight:800;letter-spacing:.3px}
+.donasi-result{text-align:center}
+.donasi-qr{display:inline-block;padding:16px;background:#fff;border:1px solid var(--line);border-radius:18px;line-height:0;box-shadow:0 8px 22px rgba(43,91,130,.10)}
+.donasi-qr img,.donasi-qr canvas{max-width:100%;height:auto!important}
+.donasi-name{margin:14px 0 2px;font-size:var(--fs-sub);font-weight:800}
+.donasi-total{margin:0 0 4px;font-size:22px;font-weight:800;color:#2a74c9}
+.donasi-note{margin:0 0 16px;color:var(--muted);font-size:var(--fs-small);line-height:1.5}
+#donasiModal .form-actions{display:flex}#donasiModal .form-actions>button{flex:1 1 140px;width:auto}#donasiForm{gap:12px}

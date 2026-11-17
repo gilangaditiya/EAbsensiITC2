@@ -30,6 +30,7 @@
             <small>SMK Ganesa</small>
           </span>
         </button>
+        <button id="donasiButton" class="donate-btn" type="button" aria-label="Donasi via QRIS"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.3C1 8.5 2.8 5 6.2 5c2 0 3.4 1.1 4.3 2.5h3C14.4 6.1 15.8 5 17.8 5c3.4 0 5.2 3.5 3.8 6.7C19.5 16.4 12 21 12 21z"/></svg><span>Donasi</span></button>
       </div>
     </header>
 
@@ -87,14 +88,14 @@
       </div>
     </section>
 
-    <!-- DASHBOARD ANGGOTA -->
+    <!-- BERANDA ANGGOTA -->
     <section id="anggotaHomePage" class="page">
       <div class="page-shell">
         <div class="section-bar">
           <div class="section-heading">
-            <span class="eyebrow">DASHBOARD ANGGOTA</span>
+            <span class="eyebrow">BERANDA</span>
             <h1 id="anggotaDashboardTitle">Halo</h1>
-            <p id="anggotaDashboardSubtitle">Informasi dan absensi pribadi.</p>
+            <p id="anggotaDashboardSubtitle">Ringkasan kehadiran pribadi.</p>
           </div>
           <button id="logoutAnggotaButton" class="icon-button" type="button" aria-label="Keluar">
             <svg viewBox="0 0 24 24"><path d="M10 17l5-5-5-5M15 12H3M21 19V5a2 2 0 0 0-2-2h-6"></path></svg>
@@ -110,88 +111,48 @@
           <button id="firstPasswordChangeButton" class="secondary-button" type="button">Ubah Password</button>
         </div>
 
-        <div class="dashboard-menu">
-          <button id="anggotaIdentitasButton" class="menu-card" type="button">
-            <span class="menu-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg></span>
-            <span><strong>Identitas Saya</strong><small>Data diri dan QR pribadi</small></span><b>→</b>
-          </button>
-          <button id="anggotaRekapButton" class="menu-card" type="button">
-            <span class="menu-icon"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M7 15l3-4 3 2 5-7"></path></svg></span>
-            <span><strong>Rekap Absensi Saya</strong><small>Lihat riwayat kehadiran sendiri</small></span><b>→</b>
-          </button>
-          <button id="anggotaPengajuanButton" class="menu-card" type="button">
-            <span class="menu-icon"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"></path></svg></span>
-            <span><strong>Ajukan Izin / Sakit</strong><small>Kirim pengajuan beserta bukti</small></span><b>→</b>
-          </button>
-          <button id="anggotaPengumumanButton" class="menu-card announcement-menu-card" type="button">
-            <span class="menu-icon"><svg viewBox="0 0 24 24"><path d="M4 11h4l8-5v12l-8-5H4z"></path><path d="M8 16v3M19 9.5a4 4 0 0 1 0 5"></path></svg></span>
-            <span><strong>Pengumuman</strong><small>Lihat pengumuman terbaru ITC</small></span><b>→</b>
-          </button>
+        <div id="berandaAnggota" class="beranda"></div>
+      </div>
+    </section>
+
+    <!-- IDENTITAS ANGGOTA -->
+    <section id="identitasPage" class="page">
+      <div class="page-shell">
+        <div class="section-heading">
+          <span class="eyebrow">IDENTITAS SAYA</span>
+          <h1 id="identitasNama">-</h1>
+          <p>Data diri dan QR pribadi untuk absensi.</p>
+        </div>
+        <div class="panel identitas-card">
+          <div class="identitas-qr" id="identitasQr"></div>
+          <p class="qr-note">Tunjukkan QR ini kepada pengelola saat absensi.</p>
+          <div class="identity-grid">
+            <div><small>Kelas</small><strong id="identitasKelas">-</strong></div>
+            <div><small>No. HP</small><strong id="identitasHp">-</strong></div>
+            <div><small>Email</small><strong id="identitasEmail">-</strong></div>
+          </div>
+          <div class="identity-actions">
+            <button id="identitasChangePasswordButton" class="secondary-button" type="button">Ubah Password</button>
+            <button id="identitasForgotPasswordButton" class="secondary-button" type="button">Lupa Password</button>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- DASHBOARD -->
+    <!-- BERANDA PENGELOLA -->
     <section id="dashboardPage" class="page">
       <div class="page-shell">
         <div class="section-bar">
           <div class="section-heading">
-            <span class="eyebrow">PANEL PENGELOLA</span>
-            <h1>Dashboard</h1>
-            <p>Kelola data dan absensi ITC.</p>
+            <span class="eyebrow">BERANDA</span>
+            <h1 id="pengelolaDashboardTitle">Halo</h1>
+            <p>Ringkasan absensi dan kegiatan ITC.</p>
           </div>
           <button id="logoutButton" class="icon-button" type="button" aria-label="Keluar">
             <svg viewBox="0 0 24 24"><path d="M10 17l5-5-5-5M15 12H3M21 19V5a2 2 0 0 0-2-2h-6"></path></svg>
           </button>
         </div>
-
-        <div class="stats-row">
-          <div class="stat-card">
-            <span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M16 11h6M19 8v6"></path></svg></span>
-            <span><small>Total Anggota</small><strong id="totalAnggota">0</strong></span>
-          </div>
-          <div class="stat-card">
-            <span class="stat-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></span>
-            <span><small>Kehadiran Hari Ini</small><strong id="totalKehadiran">0</strong></span>
-          </div>
-        </div>
-
-        <div class="dashboard-menu">
-          <button id="anggotaButton" class="menu-card" type="button"><span class="menu-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg></span><span><strong>Data Anggota</strong><small>Tambah, edit, hapus, dan QR anggota</small></span><b>→</b></button>
-          <button id="pengajuanPasswordButton" class="menu-card" type="button"><span class="menu-icon"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path><path d="M12 15v3"></path></svg></span><span><strong>Pengajuan Reset Password</strong><small>Lihat dan proses permintaan anggota</small></span><b>→</b></button>
-
-
-<button id="jadwalkanPertemuanButton" class="menu-card" type="button">
-  <span class="menu-icon">
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="3" y="5" width="18" height="16" rx="2"/>
-      <path d="M16 3v4M8 3v4M3 11h18"/>
-      <path d="m9 16 2 2 4-4"/>
-    </svg>
-  </span>
-  <span>
-    <strong>Jadwalkan Pertemuan</strong>
-    <small>Tentukan tanggal pertemuan ITC</small>
-  </span>
-  <b>→</b>
-</button>
-          
-          <button id="scanQRButton" class="menu-card" type="button"><span class="menu-icon"><svg viewBox="0 0 24 24"><path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4"></path><path d="M8 8h3v3H8zM13 13h3v3h-3zM14 8h2"></path></svg></span><span><strong>Scan QR</strong><small>Catat hadir dengan QR anggota</small></span><b>→</b></button>
-          <button id="manualAbsensiButton" class="menu-card" type="button"><span class="menu-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"></path></svg></span><span><strong>Absensi Manual</strong><small>Pilih anggota dan status kehadiran</small></span><b>→</b></button>
-          <button id="rekapButton" class="menu-card" type="button"><span class="menu-icon"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M7 15l3-4 3 2 5-7"></path></svg></span><span><strong>Rekap Absensi</strong><small>Filter dan lihat riwayat absensi</small></span><b>→</b></button>
-          <button id="pengumumanButton" class="menu-card announcement-menu-card" type="button"><span class="menu-icon"><svg viewBox="0 0 24 24"><path d="M4 11h4l8-5v12l-8-5H4z"></path><path d="M8 16v3M19 9.5a4 4 0 0 1 0 5"></path></svg></span><span><strong>Pengumuman</strong><small>Buat dan kelola pengumuman ITC</small></span><b>→</b></button>
-        </div>
+        <div id="berandaPengelola" class="beranda"></div>
       </div>
     </section>
 
@@ -336,6 +297,25 @@
     <div id="jadwalPertemuanModal" class="modal hidden" role="dialog" aria-modal="true"><div class="modal-backdrop" data-close-jadwal></div><div class="modal-card"><div class="modal-heading"><div><h2>Jadwalkan Pertemuan</h2><p>Pilih tanggal pertemuan ITC.</p></div><button type="button" class="icon-button" id="closeJadwalPertemuan">×</button></div><form id="jadwalPertemuanForm" class="form-grid"><label class="field"><span>Tanggal Pertemuan</span><input id="jadwalPertemuanTanggal" type="date" required></label><div id="jadwalPertemuanMessage" class="message"></div><div class="form-actions"><button type="button" id="batalJadwalPertemuan" class="secondary-button">Batal</button><button type="submit" class="primary-button">Simpan Jadwal</button></div></form><div class="list-head"><strong>Jadwal Mendatang</strong></div><div id="jadwalPertemuanList" class="request-list"></div></div></div>
     <div id="rekapKeseluruhanModal" class="modal hidden" role="dialog" aria-modal="true"><div class="modal-backdrop" data-close-rekap-keseluruhan></div><div class="modal-card"><div class="modal-heading"><div><h2>Rekap Keseluruhan</h2><p>Rekap status seluruh anggota.</p></div><button type="button" class="icon-button" id="closeRekapKeseluruhan">×</button></div><button id="downloadRekapButton" class="primary-button full download-button hidden" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg><span>Download Rekapan (Excel)</span></button><div id="rekapKeseluruhanContent" class="request-list"></div></div></div>
 
+
+    <div id="donasiModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="donasiTitle"><div class="modal-backdrop" data-close-donasi></div><div class="modal-card">
+      <div class="modal-heading"><div><h2 id="donasiTitle">Donasi via QRIS</h2><p>Gilang Stan, Komputer</p></div><button type="button" class="icon-button" id="closeDonasi" aria-label="Tutup">×</button></div>
+      <form id="donasiForm" class="form-grid" novalidate>
+        <label class="field"><span>Nominal donasi</span><div class="donasi-amount"><b>Rp</b><input id="donasiNominal" type="text" inputmode="numeric" autocomplete="off" placeholder="0" maxlength="11"></div></label>
+        <div class="donasi-chips" role="group" aria-label="Pilihan cepat">
+          <button type="button" class="chip" data-nominal="5000">5.000</button><button type="button" class="chip" data-nominal="10000">10.000</button><button type="button" class="chip" data-nominal="20000">20.000</button><button type="button" class="chip" data-nominal="50000">50.000</button>
+        </div>
+        <div id="donasiMessage" class="message"></div>
+        <div class="form-actions"><button type="submit" class="primary-button full">Buat QRIS</button></div>
+      </form>
+      <div id="donasiResult" class="donasi-result hidden">
+        <div class="donasi-qr"><div id="donasiQr"></div></div>
+        <p class="donasi-name">Gilang Stan, Komputer</p>
+        <p class="donasi-total" id="donasiTotal"></p>
+        <p class="donasi-note">Scan dengan aplikasi bank atau e-wallet berlogo QRIS. Uang yang kamu donasikan, sebagian besar akan digunakan untuk kebutuhan sistem.</p>
+        <div class="form-actions"><button type="button" class="secondary-button" id="donasiUlang">Ganti Nominal</button><button type="button" class="primary-button" id="donasiSelesai">Selesai</button></div>
+      </div>
+    </div></div>
     <!-- REKAP -->
     <section id="rekapPage" class="page">
       <div class="page-shell">
@@ -377,11 +357,41 @@
       </div>
     </section>
 
+    <!-- Tombol proxy tab (disembunyikan; dipanggil oleh tab bar agar logika lama tetap dipakai) -->
+    <div id="navProxies" hidden>
+      <button id="anggotaButton" class="menu-card" type="button"><span class="menu-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg></span><span><strong>Data Anggota</strong><small></small></span><b>→</b></button>
+      <button id="scanQRButton" class="menu-card" type="button"><span class="menu-icon"><svg viewBox="0 0 24 24"><path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4"></path><path d="M8 8h3v3H8zM13 13h3v3h-3zM14 8h2"></path></svg></span><span><strong>Scan QR</strong><small></small></span><b>→</b></button>
+      <button id="rekapButton" class="menu-card" type="button"><span class="menu-icon"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M7 15l3-4 3 2 5-7"></path></svg></span><span><strong>Rekap Absensi</strong><small></small></span><b>→</b></button>
+      <button id="anggotaIdentitasButton" class="menu-card" type="button"><span class="menu-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg></span><span><strong>Identitas Saya</strong><small></small></span><b>→</b></button>
+      <button id="anggotaRekapButton" class="menu-card" type="button"><span class="menu-icon"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M7 15l3-4 3 2 5-7"></path></svg></span><span><strong>Rekap Absensi Saya</strong><small></small></span><b>→</b></button>
+      <button id="anggotaPengajuanButton" class="menu-card" type="button"><span class="menu-icon"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"></path></svg></span><span><strong>Ajukan Izin / Sakit</strong><small></small></span><b>→</b></button>
+      <button id="anggotaPengumumanButton" class="menu-card announcement-menu-card" type="button"><span class="menu-icon"><svg viewBox="0 0 24 24"><path d="M4 11h4l8-5v12l-8-5H4z"></path><path d="M8 16v3M19 9.5a4 4 0 0 1 0 5"></path></svg></span><span><strong>Pengumuman</strong><small></small></span><b>→</b></button>
+    </div>
+
+    <!-- TAB BAR -->
+    <nav id="tabBar" class="tab-bar hidden" aria-label="Navigasi utama"><div class="tab-bar-inner" id="tabBarInner"></div></nav>
+
+    <!-- SHEET "LAINNYA" (pengelola) -->
+    <div id="moreSheet" class="sheet hidden" role="dialog" aria-modal="true" aria-label="Menu lainnya">
+      <div class="sheet-backdrop" data-close-sheet></div>
+      <div class="sheet-card">
+        <div class="sheet-grab" aria-hidden="true"></div>
+        <div class="sheet-head"><strong>Menu Lainnya</strong><button type="button" class="icon-button small" data-close-sheet aria-label="Tutup"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
+        <div class="sheet-list">
+          <button id="manualAbsensiButton" class="menu-card" type="button"><span class="menu-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"></path></svg></span><span><strong>Absensi Manual</strong><small>Pilih anggota dan status kehadiran</small></span><b>→</b></button>
+          <button id="sheetPengajuanButton" class="menu-card" type="button"><span class="menu-icon"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"></path><path d="M14 3v5h5M9 13h6M9 17h6"></path></svg></span><span><strong>Pengajuan Izin / Sakit</strong><small>Periksa dan proses pengajuan anggota</small></span><b>→</b></button>
+          <button id="jadwalkanPertemuanButton" class="menu-card" type="button"><span class="menu-icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 11h18"></path><path d="m9 16 2 2 4-4"></path></svg></span><span><strong>Jadwalkan Pertemuan</strong><small>Tentukan tanggal pertemuan ITC</small></span><b>→</b></button>
+          <button id="pengajuanPasswordButton" class="menu-card" type="button"><span class="menu-icon"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path><path d="M12 15v3"></path></svg></span><span><strong>Pengajuan Reset Password</strong><small>Lihat dan proses permintaan anggota</small></span><b>→</b></button>
+          <button id="pengumumanButton" class="menu-card announcement-menu-card" type="button"><span class="menu-icon"><svg viewBox="0 0 24 24"><path d="M4 11h4l8-5v12l-8-5H4z"></path><path d="M8 16v3M19 9.5a4 4 0 0 1 0 5"></path></svg></span><span><strong>Pengumuman</strong><small>Buat dan kelola pengumuman ITC</small></span><b>→</b></button>
+        </div>
+      </div>
+    </div>
+
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
     <footer class="app-footer">
       <div class="footer-inner">
-        <span>© 2026 Gilang Aditiya Ramadhan · v3.0.0</span>
+        <span>© 2026 Gilang Aditiya Ramadhan · v3.1.0</span>
       </div>
     </footer>
   </main>
